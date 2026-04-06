@@ -1,0 +1,70 @@
+html, body {
+    background-color: black;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.silkscreen-regular {
+  font-family: "Silkscreen", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.silkscreen-bold {
+  font-family: "Silkscreen", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.canvasContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+}
+
+canvas {
+    background-color: rgba(6,6,6);
+    /* width: 500px;
+    height: 500px; */
+    /* width: 100vw; */
+    image-rendering: pixelated;
+}
+
+.lowerHUD {
+    position: absolute;
+    bottom: 8vw;
+    z-index: 100;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    /* height: 50vh; */
+    width: 100vw;
+    gap: 2vw 2vw;
+    flex-wrap: wrap;
+}
+
+button {
+    width: 20vw;
+    height: 20vw;
+    font-size: 5vw;
+    border-radius: 4vw;
+    outline: none;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-family: "Silkscreen";
+    transition: 0.2s;
+}
+
+button:active {
+    scale: 0.9;
+    background: rgba(255,255,255,0.15);
+    transition: 0.2s;
+}
+
+.wideButton {
+    width: 42vw;
+}
