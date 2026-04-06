@@ -6,6 +6,8 @@ document.body.classList.add("stop-scrolling");
 // canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+console.log(window.innerHeight);
+
 
 
 ctx.fillStyle = "rgb(200 0 0)";
