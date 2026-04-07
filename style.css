@@ -1,10 +1,11 @@
 html, body {
-    background-color: rgba(15,15,15);
+    background-color: rgba(17,17,17);
     overflow: hidden;
     font-family: 'Courier New', Courier, monospace;
     -webkit-user-select: none;
     user-select: none;
     margin: 0;
+    height: 106vh;
 }
 
 .silkscreen-regular {
@@ -28,7 +29,7 @@ html, body {
 }
 
 canvas {
-    background-color: rgba(15,15,15);
+    background-color: rgba(17,17,17);
     /* width: 500px;*/
     width: 100vw;
     /* height: 100vh;  */
@@ -61,7 +62,7 @@ button {
     color: white;
     font-family: "Silkscreen";
     transition: 0.2s;
-    touch-action: manipulation;
+    touch-action: none;
 }
 
 /* button:active {
