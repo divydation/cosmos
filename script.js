@@ -25,9 +25,14 @@ let planetRadius = 100;
 
 let miners = 0;
 
+offset = 0;
+maxOffset = 10;
+
 const bullets = [] // Store the previous particles
 
 const fire = [];
+
+const battery = [];
 
 const satellites = [];
 
@@ -129,6 +134,41 @@ function draw() {
         ctx.fillRect(currentParticle.radius, 0, currentParticle.size, currentParticle.size);
         ctx.restore();
     }
+
+    
+    offset += 1.5;
+    if (offset > 10) offset = 0;
+
+    for (let i = 0; i < satellites.length; i++) {
+        let p = satellites[i];
+
+        // 1. Get the satellite's current position
+        const satPos = polarToCartesian(p.radius, p.angle);
+
+        // 2. Calculate the difference in X and Y
+        const dx = satPos.x - shipX;
+        const dy = satPos.y - shipY;
+
+        // 3. Calculate actual distance (Hypotenuse)
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // 4. Check if distance is 10 or less
+        if (distance <= 100) {
+            // console.log("Collected Power");
+            // ctx.fillStyle = "rgb(255 255 255)";
+            // p.powerStored = 450;
+            lineColor = 
+            ctx.strokeStyle = `hsl(${50 + Math.floor(Math.random() * 30)}, 100%, 50%)`;
+            ctx.beginPath();
+            ctx.moveTo(satPos.x, satPos.y);
+            ctx.lineTo(shipX, shipY);
+            ctx.lineWidth = Math.floor(3 + Math.random() * 7);
+            ctx.setLineDash([5, 5])
+            ctx.lineDashOffset = -offset;
+            ctx.stroke();
+            ctx.fillStyle = "rgb(255 255 255)";
+        }
+    }
     
 
 
@@ -167,6 +207,28 @@ function draw() {
         ctx.restore();
     }
 
+    // Draw battery particles
+    for (let i = 0; i < battery.length; i++) {
+        let currentParticle = battery[i];
+
+        // Decrease life or kill
+        if (currentParticle.life > 0 && currentParticle.size > 0) {
+            currentParticle.life = currentParticle.life - 1;
+            currentParticle.size = currentParticle.size - 0.2;
+            currentParticle.alpha -= 0.01;
+        } else {
+            battery.splice(i, 1);
+            i--;
+        }
+
+        ctx.save();
+        ctx.translate(500,500);
+        ctx.rotate(currentParticle.angle);
+        ctx.fillStyle = `hsla(${50 + currentParticle.color}, 100%, 50% , ${currentParticle.alpha})`;
+        ctx.fillRect(currentParticle.radius, 0, currentParticle.size, currentParticle.size);
+        ctx.restore();
+    }
+
     // Draw satellites
     for (let i = 0; i < satellites.length; i++) {
         let p = satellites[i];
@@ -174,17 +236,42 @@ function draw() {
         // Satellites orbit faster if they are closer to the planet
         p.angle += p.rotationSpeed;
 
-        ctx.save();
-        ctx.translate(500,500);
-        ctx.rotate(p.angle);
+
+        if (p.powerStored < 500) {
+            p.powerStored += 1;
+            ctx.fillStyle = "rgb(255 255 255)";
+        } else {
+            // battery.push({
+            //     radius: p.radius + Math.random() * 6 - 3,
+            //     angle: p.angle,
+            //     life: Math.random() * 20,
+            //     size: 8,
+            //     color: Math.floor(Math.random() * 30),
+            //     alpha: 1,
+            // });
+        }
         ctx.fillStyle = "rgb(255 255 255)";
-        const satelliteSize = 15;
+
+
+        
+
+        ctx.save();
+        ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+        ctx.rotate(planetRotation);
+        const satelliteSize = 20;
+        const batterySize = satelliteSize - 4;
         const wingWidth = 5;
         const wingLength = 10;
-        ctx.fillRect(p.radius-(satelliteSize/2), -(satelliteSize/2), satelliteSize, satelliteSize);
-        ctx.fillRect(p.radius - (wingWidth/2), -((satelliteSize/2)+wingLength), wingWidth, satelliteSize + 2*wingLength);
+        // ctx.fillRect(p.radius-(satelliteSize/2), -(satelliteSize/2), satelliteSize, satelliteSize);
+        // ctx.fillRect(p.radius - (wingWidth/2), -((satelliteSize/2)+wingLength), wingWidth, satelliteSize + 2*wingLength);
+        ctx.fillRect(-(satelliteSize/2), -(satelliteSize/2), satelliteSize, satelliteSize);
+        ctx.fillRect(- (wingWidth/2), -((satelliteSize/2)+wingLength), wingWidth, satelliteSize + 2*wingLength);
+        // ctx.fillStyle = "rgb(69, 198, 33)";
+        // ctx.fillRect(-(batterySize/2), -(batterySize/2), batterySize, batterySize);
         ctx.restore();
     }
+
+    
 
     // for (let i = 0; i < bullets.length; i++) {
     //     for (let j = i + 1; j < bullets.length; j++) {
@@ -219,9 +306,20 @@ function draw() {
     window.requestAnimationFrame(draw);
 }
 
+
+// ANGLES
+
 function toRadians(degrees) {
     return(degrees * Math.PI / 180);
 }
+
+function polarToCartesian(radius, angle, centerX = 500, centerY = 500) {
+    return {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+    };
+}
+
 
 function deploy() {
     bullets.push({
@@ -238,6 +336,7 @@ function deploySatellite() {
         radius: flightRadius + 6,
         angle: shipRotation,
         rotationSpeed: shipRotationSpeed,
+        powerStored: 495,
     });
 }
 
@@ -322,30 +421,62 @@ blueButtons.forEach(button => {
 
 
 
-window.addEventListener('keydown', (event) => {
-    // 'Space' is the modern standard for the space bar
-    if (event.code === 'Space') {
-        // Prevent the page from scrolling down when you press space
-        event.preventDefault(); 
+const holdButtons = document.querySelectorAll('.holdButton');
+const HOLD_DURATION = 1500;
+
+holdButtons.forEach(button => {
+    let animationFrameId;
+    let startTime;
+    let defaultText = button.innerHTML;
+
+    // Function to completely reset the button state and stop the loop
+    const resetBar = () => {
+        cancelAnimationFrame(animationFrameId);
+        button.style.background = ""; // Resets to the default CSS background
+        button.style.scale = "1";
+        button.innerHTML = defaultText;
+    };
+
+    // The animation loop that runs every frame while held
+    const updateBar = (timestamp) => {
+        // Set the start time on the very first frame
+        if (!startTime) startTime = timestamp;
         
-        bullets.push({
-            radius: flightRadius + 12,
-            angle: shipRotation,
-            tangentVelocity: 0.4,
-            inwardsVelocity: 0.2,
-            arrived: false,
-        });
+        const elapsed = timestamp - startTime;
+        let holdPercentage = (elapsed / HOLD_DURATION) * 100;
+
+        // If the user has held for the full 3 seconds (100%+)
+        if (holdPercentage >= 100) {
+            resetBar();
+            if (defaultText == "PROBE") {
+                deploy();
+            } else if (defaultText == "SATELLITE") {
+                deploySatellite();
+            }
+            
+            return; // Exit the loop so it doesn't keep running
+        }
+
+        button.innerHTML = "DEPLOYING";
+        button.style.scale = "0.9";
+
+        // Apply the gradient visually using template literals for cleaner syntax
+        button.style.background = `linear-gradient(to right, rgba(30,30,200,0.2) 0%, rgba(30,30,200,0.2) ${holdPercentage}%, rgba(100,100,100,0.25) ${holdPercentage}%, rgba(100,100,100,0.25) 100%)`;
+
+        // Loop the function for the next frame
+        animationFrameId = requestAnimationFrame(updateBar);
     };
 
-    if (event.code === 'KeyW') {
-        targetRadius += 20;
-    };
+    // When the user presses down
+    button.addEventListener('pointerdown', (event) => {
+        startTime = null; // Reset the timer
+        animationFrameId = requestAnimationFrame(updateBar);
+    });
 
-    if (event.code === 'KeyS') {
-        targetRadius -= 20;
-    };
+    // When the user lets go
+    button.addEventListener('pointerup', resetBar);
 
-    // Optional: Prevent the target from going inside the planet
-    if (targetRadius < 110) targetRadius = 110;
-    if (targetRadius > 450) targetRadius = 450;
+    // Cancel if the cursor drags off the button or the system interrupts the touch
+    button.addEventListener('pointerleave', resetBar);
+    button.addEventListener('pointercancel', resetBar);
 });
