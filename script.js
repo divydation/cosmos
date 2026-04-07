@@ -3,8 +3,9 @@ const ctx = canvas.getContext("2d");
 
 document.body.classList.add("stop-scrolling");
 
+
 // canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.height = screen.height;
 
 
 
@@ -44,17 +45,17 @@ function draw() {
 
     // Shrink Planet
     // Count miners
-    let minerCount = 0;
-    for (let i = 0; i < bullets.length; i++) {
-        let p = bullets[i];
-        if (p.radius <= planetRadius) {
-            minerCount++;
-        }
-    }
-    if (minerCount > miners) {
-        miners = minerCount;
-    }
-    planetRadius = Math.max(planetRadius - 0.01*miners, 0);
+    // let minerCount = 0;
+    // for (let i = 0; i < bullets.length; i++) {
+    //     let p = bullets[i];
+    //     if (p.radius <= planetRadius) {
+    //         minerCount++;
+    //     }
+    // }
+    // if (minerCount > miners) {
+    //     miners = minerCount;
+    // }
+    // planetRadius = Math.max(planetRadius - 0.01*miners, 0);
 
     // Rotate to draw planet shadow
     ctx.save();
