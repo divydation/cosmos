@@ -4,11 +4,7 @@ const ctx = canvas.getContext("2d");
 document.body.classList.add("stop-scrolling");
 
 
-// canvas.width = window.innerWidth;
-// canvas.height = screen.height;
-
 screenHeight = document.body.offsetHeight;
-console.log(screenHeight);
 
 canvas.height = screenHeight;
 
@@ -30,6 +26,16 @@ let planetRadius = 100;
 let miners = 0;
 
 const bullets = [] // Store the previous particles
+
+const fire = [];
+
+const satellites = [];
+
+satellites.push({
+    radius: flightRadius + 6,
+    angle: shipRotation,
+    rotationSpeed: shipRotationSpeed,
+});
 
 
 function draw() {
@@ -94,6 +100,43 @@ function draw() {
     ctx.fill();
 
 
+    if (riseButtonHeld || dropButtonHeld) {
+        // Add flame particle
+        fire.push({
+            radius: flightRadius + 6 + Math.random() * 10 - 5,
+            angle: shipRotation,
+            life: Math.random() * 40,
+            size: 12,
+            color: Math.floor(Math.random() * 60),
+            alpha: 1,
+        });
+
+    }
+
+    // Draw fire
+    for (let i = 0; i < fire.length; i++) {
+        let currentParticle = fire[i];
+
+        // Decrease life or kill
+        if (currentParticle.life > 0 && currentParticle.size > 0) {
+            currentParticle.life = currentParticle.life - shipRotationSpeed;
+            currentParticle.size = currentParticle.size - 0.2;
+            currentParticle.alpha -= 0.01;
+        } else {
+            fire.splice(i, 1);
+            i--;
+        }
+
+        ctx.save();
+        ctx.translate(500,500);
+        ctx.rotate(currentParticle.angle);
+        ctx.fillStyle = `hsla(${currentParticle.color}, 100%, 50% , ${currentParticle.alpha})`;
+        ctx.fillRect(currentParticle.radius, 0, currentParticle.size, currentParticle.size);
+        ctx.restore();
+    }
+    
+
+
     // Rotate to Draw ship
     ctx.save();
     ctx.translate(500,500);
@@ -102,9 +145,9 @@ function draw() {
     ctx.fillStyle = "rgb(255 255 255)";
     ctx.fillRect(flightRadius, -12.5, 25, 25);
 
-    // Loop again
     ctx.restore();
 
+    // Draw bullets
     planetRotation = planetRotation + planetRotationSpeed;
     for (let i = 0; i < bullets.length; i++) {
         let p = bullets[i];
@@ -124,39 +167,58 @@ function draw() {
         ctx.save();
         ctx.translate(500,500);
         ctx.rotate(p.angle);
-        ctx.fillStyle = "rgb(255 255 255";
+        ctx.fillStyle = "rgb(255 255 255)";
         ctx.fillRect(p.radius, 0, 10, 10);
         ctx.restore();
     }
 
-    for (let i = 0; i < bullets.length; i++) {
-    for (let j = i + 1; j < bullets.length; j++) {
-        let b1 = bullets[i];
-        let b2 = bullets[j];
+    // Draw satellites
+    for (let i = 0; i < satellites.length; i++) {
+        let p = satellites[i];
 
-        // Convert Polar to Cartesian (X, Y)
-        let x1 = b1.radius * Math.cos(b1.angle);
-        let y1 = b1.radius * Math.sin(b1.angle);
-        let x2 = b2.radius * Math.cos(b2.angle);
-        let y2 = b2.radius * Math.sin(b2.angle);
+        // Satellites orbit faster if they are closer to the planet
+        p.angle += p.rotationSpeed;
 
-        // Calculate distance between centers
-        let dx = x2 - x1;
-        let dy = y2 - y1;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-
-        // If distance is less than bullet size (10px)
-        if (distance < 10) {
-            // Remove both (highest index first to avoid array shifting issues)
-            bullets.splice(j, 1);
-            bullets.splice(i, 1);
-            
-            // Step back i and break j loop since i no longer exists
-            i--; 
-            break; 
-        }
+        ctx.save();
+        ctx.translate(500,500);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = "rgb(255 255 255)";
+        const satelliteSize = 15;
+        const wingWidth = 5;
+        const wingLength = 10;
+        ctx.fillRect(p.radius-(satelliteSize/2), -(satelliteSize/2), satelliteSize, satelliteSize);
+        ctx.fillRect(p.radius - (wingWidth/2), -((satelliteSize/2)+wingLength), wingWidth, satelliteSize + 2*wingLength);
+        ctx.restore();
     }
-}
+
+    // for (let i = 0; i < bullets.length; i++) {
+    //     for (let j = i + 1; j < bullets.length; j++) {
+    //         let b1 = bullets[i];
+    //         let b2 = bullets[j];
+
+    //         // Convert Polar to Cartesian (X, Y)
+    //         let x1 = b1.radius * Math.cos(b1.angle);
+    //         let y1 = b1.radius * Math.sin(b1.angle);
+    //         let x2 = b2.radius * Math.cos(b2.angle);
+    //         let y2 = b2.radius * Math.sin(b2.angle);
+
+    //         // Calculate distance between centers
+    //         let dx = x2 - x1;
+    //         let dy = y2 - y1;
+    //         let distance = Math.sqrt(dx * dx + dy * dy);
+
+    //         // If distance is less than bullet size (10px)
+    //         if (distance < 10) {
+    //             // Remove both (highest index first to avoid array shifting issues)
+    //             bullets.splice(j, 1);
+    //             bullets.splice(i, 1);
+                
+    //             // Step back i and break j loop since i no longer exists
+    //             i--; 
+    //             break; 
+    //         }
+    //     }
+    // }
 
     
     window.requestAnimationFrame(draw);
@@ -173,6 +235,14 @@ function deploy() {
         tangentVelocity: 0.4,
         inwardsVelocity: 0.2,
         arrived: false,
+    });
+}
+
+function deploySatellite() {
+    satellites.push({
+        radius: flightRadius + 6,
+        angle: shipRotation,
+        rotationSpeed: shipRotationSpeed,
     });
 }
 
@@ -213,6 +283,48 @@ dropButton.addEventListener('pointerup', (e) => {
 dropButton.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
+
+
+// All buttons
+const buttons = document.querySelectorAll('button');
+
+buttons.forEach(button => {
+  button.addEventListener('pointerup', (event) => {
+    
+    event.target.style.scale = "1";
+    event.target.style.backgroundColor = "rgba(100,100,100,0.5)";
+    
+  });
+
+  button.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    });
+});
+
+// Red buttons
+const redButtons = document.querySelectorAll('.redButton');
+
+redButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    event.target.style.scale = "0.9";
+    event.target.style.backgroundColor = "rgba(200,30,30,0.2)";
+    
+  });
+});
+
+// Blue buttons
+const blueButtons = document.querySelectorAll('.blueButton');
+
+blueButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    event.target.style.scale = "0.9";
+    event.target.style.backgroundColor = "rgba(30,30,200,0.2)";
+    
+  });
+});
+
 
 
 window.addEventListener('keydown', (event) => {
