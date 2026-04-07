@@ -5,16 +5,12 @@ document.body.classList.add("stop-scrolling");
 
 
 // canvas.width = window.innerWidth;
-canvas.height = screen.height;
+// canvas.height = screen.height;
 
+screenHeight = document.body.offsetHeight;
+console.log(screenHeight);
 
-
-
-
-ctx.fillStyle = "rgb(200 0 0)";
-ctx.beginPath();
-ctx.arc(500, 500, 100, 0, Math.PI*2, 1);
-ctx.fill();
+canvas.height = screenHeight;
 
 window.requestAnimationFrame(draw);
 
@@ -40,7 +36,17 @@ function draw() {
     // Clear canvas
     ctx.clearRect(0, 0, 10000, 10000); 
 
-    flightRadius += (targetRadius - flightRadius) * 0.1;
+    if (riseButtonHeld) {
+        targetRadius += 3;
+    }
+
+    if (dropButtonHeld) {
+        targetRadius -= 3;
+    }
+
+    if (targetRadius < 110) targetRadius = 110;
+    if (targetRadius > 450) targetRadius = 450;
+    flightRadius += (targetRadius - flightRadius) * 0.05;
     changeShipSpeed();
 
     // Shrink Planet
@@ -160,14 +166,6 @@ function toRadians(degrees) {
     return(degrees * Math.PI / 180);
 }
 
-function rise() {
-    targetRadius += 20;
-}
-
-function drop() {
-    targetRadius -= 20;
-}
-
 function deploy() {
     bullets.push({
         radius: flightRadius + 12,
@@ -181,6 +179,41 @@ function deploy() {
 function changeShipSpeed() {
     shipRotationSpeed = 43050.91127519282*(flightRadius**(-2.84313529232797));
 }
+
+const riseButton = document.getElementById("riseButton");
+
+riseButtonHeld = false;
+riseButton.addEventListener('pointerdown', (e) => {
+  e.preventDefault(); 
+  riseButtonHeld = true;
+});
+
+riseButton.addEventListener('pointerup', (e) => {
+  e.preventDefault(); 
+  riseButtonHeld = false;
+});
+
+riseButton.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+
+const dropButton = document.getElementById("dropButton");
+
+dropButtonHeld = false;
+dropButton.addEventListener('pointerdown', (e) => {
+  e.preventDefault(); 
+  dropButtonHeld = true;
+});
+
+dropButton.addEventListener('pointerup', (e) => {
+  e.preventDefault(); 
+  dropButtonHeld = false;
+});
+
+dropButton.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+
 
 window.addEventListener('keydown', (event) => {
     // 'Space' is the modern standard for the space bar
