@@ -1,9 +1,10 @@
 html, body {
-    background-color: rgba(20,20,20);
+    background-color: rgba(15,15,15);
     overflow: hidden;
     font-family: 'Courier New', Courier, monospace;
     -webkit-user-select: none;
     user-select: none;
+    margin: 0;
 }
 
 .silkscreen-regular {
@@ -27,11 +28,12 @@ html, body {
 }
 
 canvas {
-    background-color: rgba(20,20,20);
+    background-color: rgba(15,15,15);
     /* width: 500px;*/
     width: 100vw;
     /* height: 100vh;  */
     image-rendering: pixelated;
+    top: 0;
 }
 
 .lowerHUD {
@@ -55,17 +57,18 @@ button {
     border-radius: 4vw;
     outline: none;
     border: none;
-    background: rgba(255,255,255,0.1);
+    background: rgba(100,100,100,0.5);
     color: white;
     font-family: "Silkscreen";
     transition: 0.2s;
+    touch-action: manipulation;
 }
 
-button:active {
+/* button:active {
     scale: 0.9;
     background: rgba(255,255,255,0.15);
     transition: 0.2s;
-}
+} */
 
 .wideButton {
     width: 42vw;
