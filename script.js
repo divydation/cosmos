@@ -31,11 +31,6 @@ const fire = [];
 
 const satellites = [];
 
-satellites.push({
-    radius: flightRadius + 6,
-    angle: shipRotation,
-    rotationSpeed: shipRotationSpeed,
-});
 
 
 function draw() {
