@@ -23,7 +23,8 @@ let planetRotation = 0;
 let planetRotationSpeed = 0.002;
 let planetRadius = 100;
 
-let miners = 0;
+let energy = 10;
+let material = 10;
 
 offset = 0;
 maxOffset = 10;
@@ -36,11 +37,25 @@ const battery = [];
 
 const satellites = [];
 
+// COSTS
+drillCostMaterial = 5;
+satelliteCostMaterial = 50;
+satelliteCostEnergy = 10;
 
+
+const intervalId = setInterval(() => {
+//   energy++;
+}, 2000);
 
 function draw() {
     // Clear canvas
     ctx.clearRect(0, 0, 10000, 10000); 
+
+    if (shipRotation > toRadians(360)) shipRotation = 0;
+    if (planetRotation > toRadians(360)) planetRotation = 0;
+
+    document.getElementById("energyText").innerHTML = formatNumber(energy);
+    document.getElementById("materialText").innerHTML = formatNumber(material);
 
     if (riseButtonHeld) {
         targetRadius += 3;
@@ -94,7 +109,7 @@ function draw() {
     
 
     // Draw planet
-    ctx.fillStyle = "rgb(200 20 20)";
+    ctx.fillStyle = "#EF233C";
     ctx.beginPath();
     ctx.arc(500, 500, planetRadius, 0, Math.PI*2, 1);
     ctx.fill();
@@ -136,7 +151,8 @@ function draw() {
     }
 
     
-    offset += 1.5;
+    // Draw power transmission lines
+    offset += 2.5;
     if (offset > 10) offset = 0;
 
     for (let i = 0; i < satellites.length; i++) {
@@ -157,16 +173,55 @@ function draw() {
             // console.log("Collected Power");
             // ctx.fillStyle = "rgb(255 255 255)";
             // p.powerStored = 450;
-            lineColor = 
-            ctx.strokeStyle = `hsl(${50 + Math.floor(Math.random() * 30)}, 100%, 50%)`;
+            ctx.strokeStyle = '#F5D752';
             ctx.beginPath();
             ctx.moveTo(satPos.x, satPos.y);
             ctx.lineTo(shipX, shipY);
-            ctx.lineWidth = Math.floor(3 + Math.random() * 7);
+            ctx.lineWidth = 5;
             ctx.setLineDash([5, 5])
             ctx.lineDashOffset = -offset;
             ctx.stroke();
             ctx.fillStyle = "rgb(255 255 255)";
+
+            if (p.powerStored > 0) {
+                p.powerStored -= 1;
+                energy += 1;
+            }
+        }
+    }
+
+    // Draw material transmission lines
+    for (let i = 0; i < bullets.length; i++) {
+        let p = bullets[i];
+
+        if (p.arrived) {
+            // 1. Get the satellite's current position
+            const probePos = polarToCartesian(p.radius + 6, p.angle);
+
+            // 2. Calculate the difference in X and Y
+            const dx = probePos.x - shipX;
+            const dy = probePos.y - shipY;
+
+            // 3. Calculate actual distance (Hypotenuse)
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // 4. Check if distance is 10 or less
+            if (distance <= 100) {
+                ctx.strokeStyle = '#2EBFA5';
+                ctx.beginPath();
+                ctx.moveTo(probePos.x, probePos.y);
+                ctx.lineTo(shipX, shipY);
+                ctx.lineWidth = 5;
+                ctx.setLineDash([5, 5])
+                ctx.lineDashOffset = -offset;
+                ctx.stroke();
+
+                if (p.materialStored > 0) {
+                    p.materialStored -= 1;
+                    material += 1;
+                }
+                
+            }
         }
     }
     
@@ -181,6 +236,7 @@ function draw() {
     ctx.fillRect(flightRadius, -12.5, 25, 25);
 
     ctx.restore();
+
 
     // Draw bullets
     planetRotation = planetRotation + planetRotationSpeed;
@@ -197,37 +253,43 @@ function draw() {
         } else {
             p.arrived = true;
             p.angle = p.angle + planetRotationSpeed;
+
+            // Check if 2000 milliseconds (2 seconds) have passed
+            if (Date.now() - p.lastGenerated >= 3000) { 
+                p.materialStored += 1; 
+                p.lastGenerated = Date.now(); // Reset the timer
+            }
         }
 
         ctx.save();
         ctx.translate(500,500);
         ctx.rotate(p.angle);
         ctx.fillStyle = "rgb(255 255 255)";
-        ctx.fillRect(p.radius, 0, 10, 10);
+        ctx.fillRect(p.radius, -5, 10, 10);
         ctx.restore();
     }
 
     // Draw battery particles
-    for (let i = 0; i < battery.length; i++) {
-        let currentParticle = battery[i];
+    // for (let i = 0; i < battery.length; i++) {
+    //     let currentParticle = battery[i];
 
-        // Decrease life or kill
-        if (currentParticle.life > 0 && currentParticle.size > 0) {
-            currentParticle.life = currentParticle.life - 1;
-            currentParticle.size = currentParticle.size - 0.2;
-            currentParticle.alpha -= 0.01;
-        } else {
-            battery.splice(i, 1);
-            i--;
-        }
+    //     // Decrease life or kill
+    //     if (currentParticle.life > 0 && currentParticle.size > 0) {
+    //         currentParticle.life = currentParticle.life - 1;
+    //         currentParticle.size = currentParticle.size - 0.2;
+    //         currentParticle.alpha -= 0.01;
+    //     } else {
+    //         battery.splice(i, 1);
+    //         i--;
+    //     }
 
-        ctx.save();
-        ctx.translate(500,500);
-        ctx.rotate(currentParticle.angle);
-        ctx.fillStyle = `hsla(${50 + currentParticle.color}, 100%, 50% , ${currentParticle.alpha})`;
-        ctx.fillRect(currentParticle.radius, 0, currentParticle.size, currentParticle.size);
-        ctx.restore();
-    }
+    //     ctx.save();
+    //     ctx.translate(500,500);
+    //     ctx.rotate(currentParticle.angle);
+    //     ctx.fillStyle = `hsla(${50 + currentParticle.color}, 100%, 50% , ${currentParticle.alpha})`;
+    //     ctx.fillRect(currentParticle.radius, 0, currentParticle.size, currentParticle.size);
+    //     ctx.restore();
+    // }
 
     // Draw satellites
     for (let i = 0; i < satellites.length; i++) {
@@ -236,24 +298,13 @@ function draw() {
         // Satellites orbit faster if they are closer to the planet
         p.angle += p.rotationSpeed;
 
-
-        if (p.powerStored < 500) {
-            p.powerStored += 1;
-            ctx.fillStyle = "rgb(255 255 255)";
-        } else {
-            // battery.push({
-            //     radius: p.radius + Math.random() * 6 - 3,
-            //     angle: p.angle,
-            //     life: Math.random() * 20,
-            //     size: 8,
-            //     color: Math.floor(Math.random() * 30),
-            //     alpha: 1,
-            // });
+        // Check if 2000 milliseconds (2 seconds) have passed
+        if ((Date.now() - p.lastGenerated >= 5000) && p.powerStored < 500) { 
+            p.powerStored += 1; 
+            p.lastGenerated = Date.now(); // Reset the timer
         }
-        ctx.fillStyle = "rgb(255 255 255)";
-
-
         
+        ctx.fillStyle = "rgb(255 255 255)";
 
         ctx.save();
         ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
@@ -320,29 +371,55 @@ function polarToCartesian(radius, angle, centerX = 500, centerY = 500) {
     };
 }
 
+// Deploying
 
 function deploy() {
+    if (material < drillCostMaterial) return;
+    material -= drillCostMaterial;
+    drillCostMaterial = Math.floor(drillCostMaterial * 1.3);
+
     bullets.push({
-        radius: flightRadius + 12,
+        radius: flightRadius + 12.5,
         angle: shipRotation,
         tangentVelocity: 0.4,
         inwardsVelocity: 0.2,
         arrived: false,
+        materialStored: 0,
+        lastGenerated: Date.now(),
     });
 }
 
 function deploySatellite() {
+    // Material
+    if (material < satelliteCostMaterial) return;
+    if (energy < satelliteCostEnergy) return;
+    material -= satelliteCostMaterial;
+    satelliteCostMaterial = Math.floor(satelliteCostMaterial * 1.3);
+
+    // Energy
+    energy -= satelliteCostEnergy;
+    satelliteCostEnergy = Math.floor(satelliteCostEnergy * 1.3);
+
     satellites.push({
         radius: flightRadius + 6,
         angle: shipRotation,
         rotationSpeed: shipRotationSpeed,
-        powerStored: 495,
+        powerStored: 0,
+        lastGenerated: Date.now(),
     });
 }
+
+// Ship speed calculations
 
 function changeShipSpeed() {
     shipRotationSpeed = 43050.91127519282*(flightRadius**(-2.84313529232797));
 }
+
+
+
+// --------- //
+//  BUTTONS  //
+// --------- //
 
 const riseButton = document.getElementById("riseButton");
 
@@ -402,7 +479,7 @@ redButtons.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
     
     event.target.style.scale = "0.9";
-    event.target.style.backgroundColor = "rgba(200,30,30,0.2)";
+    event.target.style.backgroundColor = "#EF233C";
     
   });
 });
@@ -435,6 +512,9 @@ holdButtons.forEach(button => {
         button.style.background = ""; // Resets to the default CSS background
         button.style.scale = "1";
         button.innerHTML = defaultText;
+        document.getElementById("drillCostMaterial").innerHTML = drillCostMaterial;
+        document.getElementById("satelliteCostMaterial").innerHTML = satelliteCostMaterial;
+        document.getElementById("satelliteCostEnergy").innerHTML = satelliteCostEnergy;
     };
 
     // The animation loop that runs every frame while held
@@ -448,9 +528,9 @@ holdButtons.forEach(button => {
         // If the user has held for the full 3 seconds (100%+)
         if (holdPercentage >= 100) {
             resetBar();
-            if (defaultText == "PROBE") {
+            if (button.id == "drill") {
                 deploy();
-            } else if (defaultText == "SATELLITE") {
+            } else if (button.id == "satellite") {
                 deploySatellite();
             }
             
@@ -461,7 +541,7 @@ holdButtons.forEach(button => {
         button.style.scale = "0.9";
 
         // Apply the gradient visually using template literals for cleaner syntax
-        button.style.background = `linear-gradient(to right, rgba(30,30,200,0.2) 0%, rgba(30,30,200,0.2) ${holdPercentage}%, rgba(100,100,100,0.25) ${holdPercentage}%, rgba(100,100,100,0.25) 100%)`;
+        button.style.background = `linear-gradient(to right, #3083DC 0%, #3083DC ${holdPercentage}%, rgba(100,100,100,0.25) ${holdPercentage}%, rgba(100,100,100,0.25) 100%)`;
 
         // Loop the function for the next frame
         animationFrameId = requestAnimationFrame(updateBar);
@@ -480,3 +560,29 @@ holdButtons.forEach(button => {
     button.addEventListener('pointerleave', resetBar);
     button.addEventListener('pointercancel', resetBar);
 });
+
+
+// Text formatting
+function formatNumber(num) {
+  const suffixes = ['', 'k', 'm', 'b', 't'];
+  let suffixIndex = 0;
+
+  // Scale the number down by 1000s until it's under 1000
+  // or we run out of suffixes
+  while (num >= 1000 && suffixIndex < suffixes.length - 1) {
+    num /= 1000;
+    suffixIndex++;
+  }
+
+  // Handle formatting based on the size of the resulting number
+  if (num >= 100 || suffixIndex === 0) {
+    // No decimals needed if it's already 3 digits or under 1000
+    return Math.floor(num) + suffixes[suffixIndex];
+  } else if (num >= 10) {
+    // e.g., 28.1m (3 total digits)
+    return num.toFixed(1).replace(/\.0$/, '') + suffixes[suffixIndex];
+  } else {
+    // e.g., 1.56k (3 total digits)
+    return num.toFixed(2).replace(/\.?0+$/, '') + suffixes[suffixIndex];
+  }
+}
