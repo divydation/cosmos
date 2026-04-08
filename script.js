@@ -541,7 +541,7 @@ holdButtons.forEach(button => {
         button.style.scale = "0.9";
 
         // Apply the gradient visually using template literals for cleaner syntax
-        button.style.backgroundImage = `linear-gradient(to right, #3083DC 0%, #3083DC ${holdPercentage}%, rgba(100,100,100,0.25) ${holdPercentage}%, rgba(100,100,100,0.25) 100%)`;
+        button.style.backgroundImage = `linear-gradient(to right, #3083DC 0%, #3083DC ${holdPercentage}%, #222222 ${holdPercentage}%, #222222 100%)`;
 
         // Loop the function for the next frame
         animationFrameId = requestAnimationFrame(updateBar);
