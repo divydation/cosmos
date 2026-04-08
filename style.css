@@ -1,7 +1,7 @@
 html, body {
     background-color: rgba(20,20,20);
     overflow: hidden;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Silkscreen";
     -webkit-user-select: none;
     user-select: none;
     margin: 0;
@@ -63,6 +63,41 @@ button {
     font-family: "Silkscreen";
     transition: 0.2s;
     touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1vw;
+}
+
+p {
+    margin: 0;
+}
+
+.costs {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-direction: row;
+    gap: 3vw;
+}
+
+.costs > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-direction: row;
+    gap: 1vw;
+}
+
+.costs > div > svg {
+    width: 5vw;
+    height: 5vw;
+}
+
+.costs > div > p {
+    margin: 0;
+    padding-bottom: 1vw;
 }
 
 /* button:active {
@@ -73,4 +108,55 @@ button {
 
 .wideButton {
     width: 42vw;
+}
+
+
+.resources {
+    width: 86vw;
+    height: 20vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-direction: row;
+    /* gap: 20vw; */
+}
+
+.resources > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    gap: 2vw;
+}
+
+.resources > div > p {
+    /* color: white; */
+    font-size: 5vw;
+    margin: 0;
+    margin-bottom: 1vw;
+}
+
+.resources > div > img {
+    /* filter:brightness(100); */
+    width: 15vw;
+    height: 15vw;
+}
+
+.resources > div > svg {
+    width: 5vw;
+    height: 5vw;
+}
+
+.energy {
+    stroke-width: 1;
+    color: #F5D752;
+    fill: #F5D752;
+    stroke: #F5D752;
+}
+
+.material {
+    stroke-width: 1;
+    color: #2EBFA5;
+    fill: #2EBFA5;
+    stroke: #2EBFA5;
 }
