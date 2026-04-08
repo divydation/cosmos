@@ -24,16 +24,18 @@ let planetRotationSpeed = 0.002;
 let planetRadius = 100;
 
 let energy = 10;
-let material = 10;
+let material = 5;
 
 offset = 0;
 maxOffset = 10;
 
-const bullets = [] // Store the previous particles
+const drills = [] // Store the previous particles
 
 const fire = [];
 
 const battery = [];
+
+const materialsToCollect = [];
 
 const satellites = [];
 
@@ -73,8 +75,8 @@ function draw() {
     // Shrink Planet
     // Count miners
     // let minerCount = 0;
-    // for (let i = 0; i < bullets.length; i++) {
-    //     let p = bullets[i];
+    // for (let i = 0; i < drills.length; i++) {
+    //     let p = drills[i];
     //     if (p.radius <= planetRadius) {
     //         minerCount++;
     //     }
@@ -191,39 +193,39 @@ function draw() {
     }
 
     // Draw material transmission lines
-    for (let i = 0; i < bullets.length; i++) {
-        let p = bullets[i];
+    // for (let i = 0; i < drills.length; i++) {
+    //     let p = drills[i];
 
-        if (p.arrived) {
-            // 1. Get the satellite's current position
-            const probePos = polarToCartesian(p.radius + 6, p.angle);
+    //     if (p.arrived) {
+    //         // 1. Get the satellite's current position
+    //         const probePos = polarToCartesian(p.radius + 6, p.angle);
 
-            // 2. Calculate the difference in X and Y
-            const dx = probePos.x - shipX;
-            const dy = probePos.y - shipY;
+    //         // 2. Calculate the difference in X and Y
+    //         const dx = probePos.x - shipX;
+    //         const dy = probePos.y - shipY;
 
-            // 3. Calculate actual distance (Hypotenuse)
-            const distance = Math.sqrt(dx * dx + dy * dy);
+    //         // 3. Calculate actual distance (Hypotenuse)
+    //         const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // 4. Check if distance is 10 or less
-            if (distance <= 100) {
-                ctx.strokeStyle = '#2EBFA5';
-                ctx.beginPath();
-                ctx.moveTo(probePos.x, probePos.y);
-                ctx.lineTo(shipX, shipY);
-                ctx.lineWidth = 5;
-                ctx.setLineDash([5, 5])
-                ctx.lineDashOffset = -offset;
-                ctx.stroke();
+    //         // 4. Check if distance is 10 or less
+    //         if (distance <= 100) {
+    //             ctx.strokeStyle = '#2EBFA5';
+    //             ctx.beginPath();
+    //             ctx.moveTo(probePos.x, probePos.y);
+    //             ctx.lineTo(shipX, shipY);
+    //             ctx.lineWidth = 5;
+    //             ctx.setLineDash([5, 5])
+    //             ctx.lineDashOffset = -offset;
+    //             ctx.stroke();
 
-                if (p.materialStored > 0) {
-                    p.materialStored -= 1;
-                    material += 1;
-                }
+    //             if (p.materialStored > 0) {
+    //                 p.materialStored -= 1;
+    //                 material += 1;
+    //             }
                 
-            }
-        }
-    }
+    //         }
+    //     }
+    // }
     
 
 
@@ -238,10 +240,73 @@ function draw() {
     ctx.restore();
 
 
-    // Draw bullets
+
+
+
+
+    // Draw materials floating
+    for (let i = 0; i < materialsToCollect.length; i++) {
+        let p = materialsToCollect[i];
+
+            // 1. Get the material's current position
+            const position = polarToCartesian(p.radius, p.angle);
+
+            // 2. Calculate the difference in X and Y
+            const dx = position.x - shipX;
+            const dy = position.y - shipY;
+
+            // 3. Calculate actual distance (Hypotenuse)
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            p.value *= 1.004;
+
+            if (distance <= 15) {
+
+                materialsToCollect.splice(i, 1);
+                i--;
+                material += Math.floor(p.value);
+
+            } 
+
+            // 4. Check if distance is 10 or less
+            if (distance <= 50) {
+                
+                p.timeInTractorBeam += 0.05;
+
+                // start moving towards ship
+
+                p.radius += (flightRadius + 7.5 - p.radius) * 0.1;
+
+                // Magically wraps the difference between -PI and PI
+                let angleDiff = Math.atan2(Math.sin(shipRotation - p.angle), Math.cos(shipRotation - p.angle));
+                
+                p.angle += (angleDiff * p.timeInTractorBeam) + toRadians(0.5);
+                
+                
+            } else {
+                p.radius += 0.5;
+
+                if (p.radius > 600) p.alpha -= 0.1;
+
+                if (p.alpha < 0) {
+                    materialsToCollect.splice(i, 1);
+                    i--;
+                }
+            }
+
+        ctx.save();
+        ctx.translate(500,500);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = `rgba(46, 191, 165, ${p.alpha})`;
+        ctx.fillRect(p.radius, -4, 8, 8);
+        ctx.restore();
+    }
+
+
+    // Draw drills
     planetRotation = planetRotation + planetRotationSpeed;
-    for (let i = 0; i < bullets.length; i++) {
-        let p = bullets[i];
+    for (let i = 0; i < drills.length; i++) {
+        let p = drills[i];
 
         while (p.arrived && p.radius > planetRadius) {
             p.radius = p.radius - 1;
@@ -258,6 +323,14 @@ function draw() {
             if (Date.now() - p.lastGenerated >= 3000) { 
                 p.materialStored += 1; 
                 p.lastGenerated = Date.now(); // Reset the timer
+
+                materialsToCollect.push({
+                    radius: p.radius,
+                    angle: p.angle,
+                    alpha: 1,
+                    timeInTractorBeam: 0,
+                    value: 1,
+                });
             }
         }
 
@@ -324,10 +397,10 @@ function draw() {
 
     
 
-    // for (let i = 0; i < bullets.length; i++) {
-    //     for (let j = i + 1; j < bullets.length; j++) {
-    //         let b1 = bullets[i];
-    //         let b2 = bullets[j];
+    // for (let i = 0; i < drills.length; i++) {
+    //     for (let j = i + 1; j < drills.length; j++) {
+    //         let b1 = drills[i];
+    //         let b2 = drills[j];
 
     //         // Convert Polar to Cartesian (X, Y)
     //         let x1 = b1.radius * Math.cos(b1.angle);
@@ -340,11 +413,11 @@ function draw() {
     //         let dy = y2 - y1;
     //         let distance = Math.sqrt(dx * dx + dy * dy);
 
-    //         // If distance is less than bullet size (10px)
+    //         // If distance is less than drill size (10px)
     //         if (distance < 10) {
     //             // Remove both (highest index first to avoid array shifting issues)
-    //             bullets.splice(j, 1);
-    //             bullets.splice(i, 1);
+    //             drills.splice(j, 1);
+    //             drills.splice(i, 1);
                 
     //             // Step back i and break j loop since i no longer exists
     //             i--; 
@@ -378,7 +451,7 @@ function deploy() {
     material -= drillCostMaterial;
     drillCostMaterial = Math.floor(drillCostMaterial * 1.3);
 
-    bullets.push({
+    drills.push({
         radius: flightRadius + 12.5,
         angle: shipRotation,
         tangentVelocity: 0.4,
@@ -496,6 +569,23 @@ blueButtons.forEach(button => {
   });
 });
 
+// Tip button
+const tipButtons = document.querySelectorAll('.tipButton');
+
+tipButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    updateHelp();
+    
+  });
+
+  button.addEventListener('pointerup', (event) => {
+    
+    clearHelp();
+    
+  });
+});
+
 
 
 const holdButtons = document.querySelectorAll('.holdButton');
@@ -585,4 +675,31 @@ function formatNumber(num) {
     // e.g., 1.56k (3 total digits)
     return num.toFixed(2).replace(/\.?0+$/, '') + suffixes[suffixIndex];
   }
+}
+
+
+// Info help
+let helpNumber = 0;
+document.getElementById("tipsContainer").style.visibility = "hidden";
+
+let help = [
+    "Welcome to COSMOS!",
+    "Drills mine minerals from the planet and shoot them to space.",
+    "Use the RISE and DROP controls to fly around and collect minerals.",
+    "The closer your orbit, the faster you circle the planet.",
+    "Materials increase in value as they oxidise in space.",
+    "Satellites use solar panels to harvest energy.",
+    "Fly near a satellite to collect its energy."
+]
+
+function updateHelp() {
+    console.log("test");
+    document.getElementById("tipsContainer").style.visibility = "visible";
+    document.getElementById("tips").innerHTML = help[helpNumber];
+    helpNumber++;
+    if (helpNumber == 7) helpNumber = 0;
+}
+
+function clearHelp() {
+    document.getElementById("tipsContainer").style.visibility = "hidden";
 }
