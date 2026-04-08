@@ -97,7 +97,7 @@ p {
 
 .costs > div > p {
     margin: 0;
-    padding-bottom: 1vw;
+    padding-bottom: 0.5vw;
 }
 
 /* button:active {
@@ -159,4 +159,19 @@ p {
     color: #2EBFA5;
     fill: #2EBFA5;
     stroke: #2EBFA5;
+}
+
+.tips {
+    width: 86vw;
+    height: 20vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-direction: row;
+}
+
+.tips > p {
+    color: rgba(120, 120, 120, 1);
+    font-size: 5vw;
+    text-align: center;
 }
