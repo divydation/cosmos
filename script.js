@@ -54,7 +54,12 @@ view = "planet";
 // COSTS
 drillCostMaterial = 5;
 satelliteCostMaterial = 50;
-satelliteCostEnergy = 10;
+bundlerCostMaterial = 100;
+
+// Timing control
+let lastTime = Date.now();
+const TARGET_FPS = 60;
+const MS_PER_FRAME = 1000 / TARGET_FPS; // ~16.66ms
 
 
 // const intervalId = setInterval(() => {
@@ -65,6 +70,13 @@ satelliteCostEnergy = 10;
 function mainThread() {
     // Clear canvas
     ctx.clearRect(0, 0, 10000, 10000); 
+
+    // Timing control
+    let now = Date.now();
+    let dt = now - lastTime;
+    lastTime = now;
+
+    if (dt > 100) dt = MS_PER_FRAME; 
 
     // Rotate ship
     shipRotation += shipRotationSpeed;
@@ -280,10 +292,11 @@ function mainThread() {
         } else {
             p.arrived = true;
             p.angle = p.angle + planetRotationSpeed;
+            p.productionTimer += dt;
 
-            if (Date.now() - p.lastGenerated >= 3000) { 
+            if (p.productionTimer >= 3000) { 
                 p.materialStored += 1; 
-                p.lastGenerated = Date.now(); // Reset the timer
+                p.productionTimer = 0; // Reset the timer
 
                 materialsToCollect.push({
                     radius: p.radius,
@@ -305,10 +318,11 @@ function mainThread() {
         // Satellites orbit faster if they are closer to the planet
         p.angle += p.rotationSpeed;
 
-        // Check if 2000 milliseconds (2 seconds) have passed
-        if ((Date.now() - p.lastGenerated >= 5000) && p.powerStored < 500) { 
-            p.powerStored += 1; 
-            p.lastGenerated = Date.now(); // Reset the timer
+        p.productionTimer += dt;
+
+        if (p.productionTimer >= 4000 && p.powerStored < 500) { 
+            p.powerStored += 1;
+            p.productionTimer = 0;
         }
         
         canvasDrawSatellites(p);
@@ -321,17 +335,21 @@ function mainThread() {
         // Bundlers orbit faster if they are closer to the planet
         p.angle += p.orbitSpeed;
 
-        // Bundle the amount of minerals every 10 seconds
-        if (p.mineralsStored > 50) { 
-            bundles.push({
-                radius: p.radius,
-                angle: p.angle,
-                rotationSpeed: p.orbitSpeed - 0.005,
-                mineralsAmount: p.mineralsStored,
-            });
+        if (p.battery > 0) {
+            // Bundle the amount of minerals every 10 seconds
+            if (p.mineralsStored > 50) { 
+                bundles.push({
+                    radius: p.radius,
+                    angle: p.angle,
+                    rotation: p.angle,
+                    rotationSpeed: p.rotationSpeed,
+                    mineralsAmount: p.mineralsStored,
+                    timeInTractorBeam: 0,
+                });
 
-            p.mineralsStored = 0; 
-        }
+                p.mineralsStored = 0; 
+            }
+        }        
         
         canvasDrawBundler(p);
     }
@@ -341,8 +359,46 @@ function mainThread() {
         let p = bundles[i];
 
         // Bundlers orbit faster if they are closer to the planet
-        p.angle += p.rotationSpeed;
+        // p.angle += p.rotationSpeed;
 
+        p.rotation += p.rotationSpeed;
+
+        // Distance to the ship
+
+        // 1. Get the bundle's current position
+        const position = polarToCartesian(p.radius, p.angle);
+
+        // 2. Calculate the difference in X and Y
+        const dx = position.x - shipX;
+        const dy = position.y - shipY;
+
+        // 3. Calculate actual distance (Hypotenuse)
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= 15) {
+
+            bundles.splice(i, 1);
+            i--;
+            material += Math.floor(p.mineralsAmount);
+
+        } 
+
+        // 4. Check if distance is 10 or less
+        if (distance <= 50) {
+            
+            p.timeInTractorBeam += 0.05;
+
+            // start moving towards ship
+            p.radius += (flightRadius + 7.5 - p.radius) * Math.min(p.timeInTractorBeam, 1);
+
+            // Magically wraps the difference between -PI and PI
+            let angleDiff = Math.atan2(Math.sin(shipRotation - p.angle), Math.cos(shipRotation - p.angle));
+            
+            p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
+            
+        }
+
+        
         canvasDrawBundle(p);
     }
 
@@ -408,6 +464,7 @@ function canvasDrawPowerTransmission() {
             // console.log("Collected Power");
             // ctx.fillStyle = "rgb(255 255 255)";
             // p.powerStored = 450;
+            ctx.save();
             ctx.strokeStyle = '#F5D752';
             ctx.beginPath();
             ctx.moveTo(satPos.x, satPos.y);
@@ -417,10 +474,42 @@ function canvasDrawPowerTransmission() {
             ctx.lineDashOffset = -offset;
             ctx.stroke();
             ctx.fillStyle = "rgb(255 255 255)";
+            ctx.restore();
 
             if (p.powerStored > 0) {
                 p.powerStored -= 1;
                 energy += 1;
+            }
+        }
+
+        // Draw power line between satellites and bundlers
+        for (let j = 0; j < bundlers.length; j++) {
+            let b = bundlers[j];
+
+            bundlerPosition = polarToCartesian(b.radius, b.angle);
+
+            const dx = satPos.x - bundlerPosition.x;
+            const dy = satPos.y - bundlerPosition.y;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 100) {
+                ctx.save();
+                ctx.strokeStyle = '#F5D752';
+                ctx.beginPath();
+                ctx.moveTo(satPos.x, satPos.y);
+                ctx.lineTo(bundlerPosition.x, bundlerPosition.y);
+                ctx.lineWidth = 5;
+                ctx.setLineDash([5, 5])
+                ctx.lineDashOffset = -offset;
+                ctx.stroke();
+                ctx.fillStyle = "rgb(255 255 255)";
+                ctx.restore();
+
+                if (p.powerStored > 0) {
+                    p.powerStored -= 1;
+                    b.battery += 1;
+                }
             }
         }
     }
@@ -462,13 +551,23 @@ function canvasDrawSatellites(p) {
     ctx.restore();
 }
 
-deployBundler()
 function canvasDrawBundler(p) {
-    p.rotation += p.rotationSpeed;
     ctx.save();
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     // ctx.rotate(p.angle);
+
+    p.battery = Math.max(p.battery, 0);
+
+    // Only rotate if bundler has battery
+    if (p.battery > 0) {
+        p.rotation += p.rotationSpeed;
+        p.battery -= 0.005;
+    }
+
+    updateHelp(formatNumber(p.battery));
+    
     ctx.rotate(p.rotation);
+
     const bundlerSize = 20;
     const wingSize = 15;
     ctx.fillStyle = "rgb(255 255 255)";
@@ -493,10 +592,10 @@ function canvasDrawBundler(p) {
 
 function canvasDrawBundle(p) {
     ctx.save();
-    ctx.translate(500,500);
-    ctx.rotate(p.angle);
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+    ctx.rotate(p.rotation);
     ctx.fillStyle = `rgba(46, 191, 165, 1)`;
-    ctx.fillRect(p.radius, -8, 16, 16);
+    ctx.fillRect(-8, -8, 16, 16);
     ctx.restore();
 }
 
@@ -611,31 +710,31 @@ function deploy() {
         inwardsVelocity: 0.2,
         arrived: false,
         materialStored: 0,
-        lastGenerated: Date.now(),
+        productionTimer: 0,
     });
 }
 
 function deploySatellite() {
     // Material
     if (material < satelliteCostMaterial) return;
-    if (energy < satelliteCostEnergy) return;
     material -= satelliteCostMaterial;
     satelliteCostMaterial = Math.floor(satelliteCostMaterial * 1.3);
-
-    // Energy
-    energy -= satelliteCostEnergy;
-    satelliteCostEnergy = Math.floor(satelliteCostEnergy * 1.3);
 
     satellites.push({
         radius: flightRadius + 6,
         angle: shipRotation,
         rotationSpeed: shipRotationSpeed,
         powerStored: 0,
-        lastGenerated: Date.now(),
+        productionTimer: 0,
     });
 }
 
 function deployBundler() {
+    // Material
+    if (material < bundlerCostMaterial) return;
+    material -= bundlerCostMaterial;
+    bundlerCostMaterial = Math.floor(bundlerCostMaterial * 1.3);
+
     bundlers.push({
         radius: flightRadius + 6,
         angle: shipRotation,
@@ -643,6 +742,7 @@ function deployBundler() {
         rotation: 0,
         rotationSpeed: 0.1,
         mineralsStored: 0,
+        battery: 0,
     });
 }
 
@@ -791,7 +891,7 @@ holdButtons.forEach(button => {
         clearHelp();
         document.getElementById("drillCostMaterial").innerHTML = drillCostMaterial;
         document.getElementById("satelliteCostMaterial").innerHTML = satelliteCostMaterial;
-        document.getElementById("satelliteCostEnergy").innerHTML = satelliteCostEnergy;
+        document.getElementById("bundlerCostMaterial").innerHTML = bundlerCostMaterial;
     };
 
     // The animation loop that runs every frame while held
@@ -815,6 +915,8 @@ holdButtons.forEach(button => {
                 deploy();
             } else if (button.id == "satellite") {
                 deploySatellite();
+            } else if (button.id == "bundler") {
+                deployBundler();
             }
             clearHelp();
             return; // Exit the loop so it doesn't keep running
