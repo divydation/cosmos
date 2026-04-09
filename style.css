@@ -70,6 +70,10 @@ button {
     gap: 1vw;
 }
 
+.emptyButton {
+    background: rgba(100,100,100,0.25);
+}
+
 p {
     margin: 0;
 }
