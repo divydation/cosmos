@@ -74,6 +74,16 @@ p {
     margin: 0;
 }
 
+button > svg {
+    stroke-width: 1;
+    color: #FFFFFF;
+    /* fill: #FFFFFF; */
+    stroke: #FFFFFF;
+    width: 5vw;
+    height: 5vw;
+}
+
+
 .costs {
     display: flex;
     align-items: center;
@@ -165,7 +175,7 @@ p {
     width: 86vw;
     height: 20vw;
     display: flex;
-    align-items: center;
+    align-items:flex-end;
     justify-content: space-around;
     flex-direction: row;
 }
@@ -174,4 +184,5 @@ p {
     color: rgba(120, 120, 120, 1);
     font-size: 5vw;
     text-align: center;
+    /* bottom: 0; */
 }
