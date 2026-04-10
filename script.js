@@ -26,7 +26,7 @@ let planetOrbitSpeed = 0.0005;
 let planetOrbit = Math.random()*toRadians(360);
 
 let energy = 0;
-let material = 500;
+let material = 5;
 
 offset = 0;
 maxOffset = 10;
@@ -678,7 +678,6 @@ function isLaserBlocked(sat, comet) {
 
 
 
-deploySatellite();
 
 // Drawing
 function canvasDrawPowerTransmission() {
