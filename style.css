@@ -70,7 +70,7 @@ button {
     background: rgba(100,100,100,0.5);
     color: white;
     font-family: "Silkscreen";
-    transition: 0.2s;
+    transition: 0.1s;
     touch-action: none;
     display: flex;
     align-items: center;
@@ -123,6 +123,11 @@ button > svg {
     padding-bottom: 0.5vw;
 }
 
+.levelLabel {
+    color: rgb(195, 195, 195);
+    margin-right: 2vw !important;
+}
+
 /* button:active {
     scale: 0.9;
     background: rgba(255,255,255,0.15);
@@ -131,6 +136,14 @@ button > svg {
 
 .wideButton {
     width: 42vw;
+}
+
+.tallButton {
+    width: 42vw;
+}
+
+.hugeButton {
+    width: 86vw;
 }
 
 
@@ -199,3 +212,20 @@ button > svg {
     text-align: center;
     /* bottom: 0; */
 }
+
+
+/* Menu Sections */
+
+.menu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    gap: 2vw 2vw;
+    flex-wrap: wrap;
+}
+
+/* .deviceMenu {
+    display: none !important;
+} */
