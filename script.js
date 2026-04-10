@@ -33,6 +33,10 @@ maxOffset = 10;
 
 let shipX;
 let shipY;
+let shipPosition = {
+    x: shipX,
+    y: shipY
+};
 
 // Techology
 const drills = [] // Store the previous particles
@@ -43,6 +47,9 @@ const satellites = [];
 const bundlers = [];
 const bundles = [];
 
+const comets = [];
+
+const laserSatellites = [];
 
 // Particles
 const fire = [];
@@ -51,10 +58,26 @@ const fire = [];
 
 view = "planet";
 
+
+
 // COSTS
 drillCostMaterial = 5;
-satelliteCostMaterial = 50;
-bundlerCostMaterial = 100;
+satelliteCostMaterial = 25;
+bundlerCostMaterial = 50;
+laserSatelliteCostMaterial = 50;
+
+drillRateUpgradeCost = 100;
+collectionRadiusUpgradeCost = 100;
+
+
+// UPGRADES
+
+drillProductionRate = 3000;
+drillLevel = 1;
+
+collectionRadius = 50;
+collectionRadiusLevel = 1;
+
 
 // Timing control
 let lastTime = Date.now();
@@ -62,14 +85,19 @@ const TARGET_FPS = 60;
 const MS_PER_FRAME = 1000 / TARGET_FPS; // ~16.66ms
 
 
+
+updating = true;
+
 // const intervalId = setInterval(() => {
-    // planetRotation = planetRotation + planetRotationSpeed;
-    // shipRotation = shipRotation + shipRotationSpeed;
-// }, 100);
+    
+// }, 1);
 
 function mainThread() {
     // Clear canvas
-    ctx.clearRect(0, 0, 10000, 10000); 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+    document.getElementById("energyText").innerHTML = formatNumber(energy);
+    document.getElementById("materialText").innerHTML = formatNumber(material);
 
     // Timing control
     let now = Date.now();
@@ -88,9 +116,11 @@ function mainThread() {
 
     shipX = 500 + (flightRadius + 12.5) * Math.cos(shipRotation);
     shipY = 500 + (flightRadius + 12.5) * Math.sin(shipRotation);
-
-    document.getElementById("energyText").innerHTML = formatNumber(energy);
-    document.getElementById("materialText").innerHTML = formatNumber(material);
+    
+    let shipPosition = {
+        x: shipX,
+        y: shipY
+    };
 
     if (riseButtonHeld) {
         targetRadius += 3;
@@ -198,30 +228,20 @@ function mainThread() {
     for (let i = 0; i < materialsToCollect.length; i++) {
         let p = materialsToCollect[i];
 
-            // Distance to the ship
-
             // 1. Get the material's current position
-            const position = polarToCartesian(p.radius, p.angle);
+            const materialPosition = polarToCartesian(p.radius, p.angle);
 
-            // 2. Calculate the difference in X and Y
-            const dx = position.x - shipX;
-            const dy = position.y - shipY;
-
-            // 3. Calculate actual distance (Hypotenuse)
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            distance = calculateDistance(materialPosition, shipPosition);
 
             p.value *= 1.004;
 
-            if (distance <= 15) {
-
+            if (distance <= 15**2) {
                 materialsToCollect.splice(i, 1);
                 i--;
                 material += Math.floor(p.value);
-
             } 
 
-            // 4. Check if distance is 10 or less
-            if (distance <= 50) {
+            if (distance <= collectionRadius**2) {
                 
                 p.timeInTractorBeam += 0.05;
 
@@ -249,28 +269,30 @@ function mainThread() {
             for (let j = 0; j < bundlers.length; j++) {
                 let b = bundlers[j];
 
-                const dx = position.x - polarToCartesian(b.radius, b.angle).x;
-                const dy = position.y - polarToCartesian(b.radius, b.angle).y;
+                if (b.battery > 0) {
 
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                    bundlerPosition = polarToCartesian(b.radius, b.angle);
 
-                if (distance <= 15) {
-                    materialsToCollect.splice(i, 1);
-                    i--;
-                    b.mineralsStored += Math.floor(p.value);
-                } 
+                    distance = calculateDistance(materialPosition, bundlerPosition);
 
-                if (distance <= 35) {
-                    p.timeInTractorBeam += 0.05;
+                    if (distance <= 15**2) {
+                        materialsToCollect.splice(i, 1);
+                        i--;
+                        b.mineralsStored += Math.floor(p.value);
+                    } 
 
-                    // start moving towards bundler
-                    p.radius += (b.radius + 5 - p.radius) * Math.min(p.timeInTractorBeam, 1);
+                    if (distance <= collectionRadius**2) {
+                        p.timeInTractorBeam += 0.05;
 
-                    // Magically wraps the difference between -PI and PI
-                    let angleDiff = Math.atan2(Math.sin(b.angle - p.angle), Math.cos(b.angle - p.angle));
-                    
-                    p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
-                    
+                        // start moving towards bundler
+                        p.radius += (b.radius + 5 - p.radius) * Math.min(p.timeInTractorBeam, 1);
+
+                        // Magically wraps the difference between -PI and PI
+                        let angleDiff = Math.atan2(Math.sin(b.angle - p.angle), Math.cos(b.angle - p.angle));
+                        
+                        p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
+                        
+                    }
                 }
             }
 
@@ -294,7 +316,7 @@ function mainThread() {
             p.angle = p.angle + planetRotationSpeed;
             p.productionTimer += dt;
 
-            if (p.productionTimer >= 3000) { 
+            if (p.productionTimer >= drillProductionRate) { 
                 p.materialStored += 1; 
                 p.productionTimer = 0; // Reset the timer
 
@@ -326,6 +348,94 @@ function mainThread() {
         }
         
         canvasDrawSatellites(p);
+    }
+
+    // Draw laser Satellites 
+    for (let i = 0; i < laserSatellites.length; i++) {
+        let p = laserSatellites[i];
+
+        // Satellites orbit faster if they are closer to the planet
+        p.angle += p.rotationSpeed;
+
+        p.productionTimer += dt;
+
+        if (p.productionTimer >= 500 && p.powerStored < 500) { 
+            p.powerStored += 1;
+            p.productionTimer = 0;
+        }
+
+        laserSatPosition = polarToCartesian(p.radius, p.angle);
+
+
+        closestComet = null;
+        smallestDistance = 100000000000;
+
+        // Find closest comet
+        for (let j = 0; j < comets.length; j++) {
+            let c = comets[j];
+
+            cometPosition = {
+                x: c.currentX,
+                y: c.currentY
+            }
+
+            distanceToComet = calculateDistance(laserSatPosition, cometPosition);
+
+            if (distanceToComet < smallestDistance && !isLaserBlocked(laserSatPosition, cometPosition)) {
+                smallestDistance = distanceToComet;
+                closestComet = c;
+            }
+        }
+
+        if  (closestComet != null) {
+            closestCometPosition = {
+                x: closestComet.currentX,
+                y: closestComet.currentY,
+            }
+
+            closestComet.material -= 1;
+
+            drawLine = isLaserBlocked(laserSatPosition, closestCometPosition);
+
+            let dy = closestCometPosition.y - laserSatPosition.y;
+            let dx = closestCometPosition.x - laserSatPosition.x;
+            
+            // 1. Calculate the angle we WANT to be at
+            let targetAngle = Math.atan2(dy, dx);
+
+            // 2. Calculate the difference between current and target
+            let angleDiff = targetAngle - p.rotation;
+
+            // 3. Normalize the angle to ensure the satellite takes the shortest path
+            // This prevents the "360-degree spin" bug
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+            // 4. Smoothly increment the rotation
+            let rotationSpeed = 0.2; // Adjust this for "weight"
+            if (Math.abs(angleDiff) > 0.01) {
+                p.rotation += angleDiff * rotationSpeed;
+            } else {
+                p.rotation = targetAngle; // Snap to target if very close
+            }
+            
+
+            if (!drawLine) {
+                ctx.save();
+                ctx.strokeStyle = '#3083DC';
+                ctx.beginPath();
+                ctx.moveTo(laserSatPosition.x, laserSatPosition.y);
+                ctx.lineTo(closestCometPosition.x, closestCometPosition.y);
+                ctx.lineWidth = Math.random() * 7;
+                // ctx.setLineDash([5, 5])
+                // ctx.lineDashOffset = -offset;
+                ctx.stroke();
+                ctx.fillStyle = "rgb(255 255 255)";
+                ctx.restore();
+            }
+        }
+        
+        canvasDrawLaserSatellites(p);
     }
 
     // Draw bundlers
@@ -363,19 +473,11 @@ function mainThread() {
 
         p.rotation += p.rotationSpeed;
 
-        // Distance to the ship
+        const bundlePosition = polarToCartesian(p.radius, p.angle);
 
-        // 1. Get the bundle's current position
-        const position = polarToCartesian(p.radius, p.angle);
+        distance = calculateDistance(bundlePosition, shipPosition);
 
-        // 2. Calculate the difference in X and Y
-        const dx = position.x - shipX;
-        const dy = position.y - shipY;
-
-        // 3. Calculate actual distance (Hypotenuse)
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance <= 15) {
+        if (distance <= 15**2) {
 
             bundles.splice(i, 1);
             i--;
@@ -384,7 +486,7 @@ function mainThread() {
         } 
 
         // 4. Check if distance is 10 or less
-        if (distance <= 50) {
+        if (distance <= collectionRadius**2) {
             
             p.timeInTractorBeam += 0.05;
 
@@ -400,6 +502,29 @@ function mainThread() {
 
         
         canvasDrawBundle(p);
+    }
+
+
+
+    // Comets
+    for (let i = 0; i < comets.length; i++) {
+        let comet = comets[i];
+
+        // Comets don't orbit the planet, they pass by
+        comet.progress += comet.speed;
+        comet.rotation += comet.rotationSpeed;
+
+        // Check if the comet is done
+        if (comet.progress >= 1) {
+            comets.splice(i, 1);
+            i--; // Adjust the index so we don't skip the next comet
+            continue; 
+        }       
+
+        comet.currentX = comet.startX + (comet.finishX - comet.startX) * comet.progress;
+        comet.currentY = comet.startY + (comet.finishY - comet.startY) * comet.progress;
+        
+        canvasDrawComet(comet);
     }
 
     
@@ -433,12 +558,74 @@ function mainThread() {
     //     }
     // }
 
+    
+
     if (view == "system") {
         drawSolarSystem();
     }
     
     window.requestAnimationFrame(mainThread);
 }
+
+
+
+
+
+
+// Calculations
+
+function calculateDistance(objectOne, objectTwo) {
+
+        // Calculate the difference in X and Y
+        dx = objectOne.x - objectTwo.x;
+        dy = objectOne.y - objectTwo.y;
+
+        distanceSquared = (dx * dx) + (dy * dy);
+        return(distanceSquared);
+}
+
+function toRadians(degrees) {
+    return(degrees * Math.PI / 180);
+}
+
+function polarToCartesian(radius, angle, centerX = 500, centerY = 500) {
+    return {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+    };
+}
+
+function isLaserBlocked(sat, comet) {
+    // 1. Get the vector from Satellite to Comet
+    const dx = comet.x - sat.x;
+    const dy = comet.y - sat.y;
+    
+    // 2. Find the "t" parameter of the projection
+    // This tells us how far along the segment the closest point is
+    const l2 = dx * dx + dy * dy; // Squared length of the laser segment
+    if (l2 === 0) return false;    // Satellite and comet are on the same spot
+    
+    let t = ((500 - sat.x) * dx + (500 - sat.y) * dy) / l2;
+    
+    // 3. Clamp 't' to the range [0, 1] 
+    // This ensures we only care about the segment between the two points
+    t = Math.max(0, Math.min(1, t));
+    
+    // 4. Find the coordinates of that closest point on the segment
+    const closestX = sat.x + t * dx;
+    const closestY = sat.y + t * dy;
+    
+    // 5. Calculate distance from planet center to this closest point
+    const distDX = 500 - closestX;
+    const distDY = 500 - closestY;
+    const distanceSquared = distDX * distDX + distDY * distDY;
+    
+    // 6. If distance is less than radius, it's blocked!
+    return distanceSquared < (planetRadius * planetRadius);
+}
+
+
+
 
 
 // Drawing
@@ -453,14 +640,10 @@ function canvasDrawPowerTransmission() {
         const satPos = polarToCartesian(p.radius, p.angle);
 
         // 2. Calculate the difference in X and Y
-        const dx = satPos.x - shipX;
-        const dy = satPos.y - shipY;
-
-        // 3. Calculate actual distance (Hypotenuse)
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        distance = calculateDistance(satPos, shipPosition);
 
         // 4. Check if distance is 10 or less
-        if (distance <= 100) {
+        if (distance <= 100**2) {
             // console.log("Collected Power");
             // ctx.fillStyle = "rgb(255 255 255)";
             // p.powerStored = 450;
@@ -488,12 +671,9 @@ function canvasDrawPowerTransmission() {
 
             bundlerPosition = polarToCartesian(b.radius, b.angle);
 
-            const dx = satPos.x - bundlerPosition.x;
-            const dy = satPos.y - bundlerPosition.y;
+            distance = calculateDistance(satPos, bundlerPosition);
 
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance <= 100) {
+            if (distance <= 100**2) {
                 ctx.save();
                 ctx.strokeStyle = '#F5D752';
                 ctx.beginPath();
@@ -551,6 +731,23 @@ function canvasDrawSatellites(p) {
     ctx.restore();
 }
 
+function canvasDrawLaserSatellites(p) {
+    ctx.save();
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+    ctx.rotate(p.rotation);
+    const satelliteSize = 20;
+    const wingWidth = 5;
+    const wingLength = 10;
+
+    ctx.fillStyle = "rgb(255 255 255)";
+    ctx.fillRect(-satelliteSize/8, -satelliteSize, satelliteSize/4, satelliteSize*2);
+    ctx.fillRect(-satelliteSize, -satelliteSize/2, satelliteSize*2, satelliteSize);
+
+    ctx.restore();
+}
+
+deployLaserSatellite();
+
 function canvasDrawBundler(p) {
     ctx.save();
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
@@ -559,12 +756,14 @@ function canvasDrawBundler(p) {
     p.battery = Math.max(p.battery, 0);
 
     // Only rotate if bundler has battery
-    if (p.battery > 0) {
+    if (p.battery > 1) {
         p.rotation += p.rotationSpeed;
-        p.battery -= 0.005;
+        p.battery -= 0.0075;
+    } else if (p.battery > 0) {
+        p.rotation += p.rotationSpeed * (p.battery);
+        p.battery -= 0.0075;
     }
 
-    updateHelp(formatNumber(p.battery));
     
     ctx.rotate(p.rotation);
 
@@ -599,6 +798,75 @@ function canvasDrawBundle(p) {
     ctx.restore();
 }
 
+function canvasDrawComet(comet) {
+    ctx.save();
+    ctx.translate(comet.currentX, comet.currentY);
+    ctx.rotate(comet.rotation);
+    ctx.fillStyle = `rgba(100, 100, 100, 1)`;
+    ctx.fillRect(-15, -15, 30, 30);
+    ctx.restore();
+}
+
+function spawnComet() {
+    const margin = 100; // Spawn 100px off-screen
+    const width = 1000;
+    const height = 1000;
+
+    // Define our valid sides (excluding bottom)
+    const validSides = ['left', 'right'];
+    
+    // 1. Pick a random starting side
+    const startSide = validSides[Math.floor(Math.random() * validSides.length)];
+    
+    // 2. Filter out the start side so it doesn't try to exit the same way it entered
+    const availableFinishSides = validSides.filter(side => side !== startSide);
+    
+    // 3. Pick a random finish side from the remaining options
+    const finishSide = availableFinishSides[Math.floor(Math.random() * availableFinishSides.length)];
+
+    let startX, startY, finishX, finishY;
+
+    // 4. Set starting coordinates based on startSide
+    if (startSide === 'top') {
+        startX = Math.random() * width;
+        startY = -margin;
+    } else if (startSide === 'left') {
+        startX = -margin;
+        startY = Math.random() * height;
+    } else if (startSide === 'right') {
+        startX = width + margin;
+        startY = Math.random() * height;
+    }
+
+    // 5. Set finishing coordinates based on finishSide
+    if (finishSide === 'top') {
+        finishX = Math.random() * width;
+        finishY = -margin;
+    } else if (finishSide === 'left') {
+        finishX = -margin;
+        finishY = Math.random() * height;
+    } else if (finishSide === 'right') {
+        finishX = width + margin;
+        finishY = Math.random() * height;
+    }
+
+    comets.push({
+        startX, startY,
+        finishX, finishY,
+        currentX: startX,
+        currentY: startY,
+        progress: 0, // This goes from 0 to 1
+        speed: 0.001, // Adjust for how fast they cross (0.01 is very fast)
+        rotation: 0,
+        rotationSpeed: (Math.random() - 0.5) * 0.05,
+        material: 100
+    });
+}
+
+
+
+
+
 const planets = [];
 
 planets.push({
@@ -632,7 +900,7 @@ planets.push({
 });
 
 function drawSolarSystem() {
-    ctx.clearRect(0, 0, 10000, 10000); 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
 
     const scale = 0.1;
 
@@ -678,23 +946,6 @@ function drawSolarSystem() {
 }
 
 
-
-
-
-
-
-// ANGLES
-
-function toRadians(degrees) {
-    return(degrees * Math.PI / 180);
-}
-
-function polarToCartesian(radius, angle, centerX = 500, centerY = 500) {
-    return {
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-    };
-}
 
 // Deploying
 
@@ -744,6 +995,44 @@ function deployBundler() {
         mineralsStored: 0,
         battery: 0,
     });
+}
+
+function deployLaserSatellite() {
+    // Material
+    if (material < laserSatelliteCostMaterial) return;
+    material -= laserSatelliteCostMaterial;
+    laserSatelliteCostMaterial = Math.floor(laserSatelliteCostMaterial * 1.3);
+
+    laserSatellites.push({
+        radius: flightRadius + 6,
+        angle: shipRotation,
+        rotation: 0,
+        rotationSpeed: shipRotationSpeed,
+        damageStored: 0,
+        productionTimer: 0,
+    });
+}
+
+
+
+function upgradeDrillRate() {
+    // Material
+    if (energy < drillRateUpgradeCost) return;
+    energy -= drillRateUpgradeCost;
+    drillRateUpgradeCost = Math.floor(drillRateUpgradeCost * 2);
+
+    drillProductionRate = drillProductionRate / 1.5;
+    drillLevel++;
+}
+
+function upgradeCollectionLevel() {
+    // Material
+    if (energy < collectionRadiusUpgradeCost) return;
+    energy -= collectionRadiusUpgradeCost;
+    collectionRadiusUpgradeCost = Math.floor(collectionRadiusUpgradeCost * 2);
+
+    collectionRadius = collectionRadius * 1.2;
+    collectionRadiusLevel++;
 }
 
 // Ship speed calculations
@@ -802,12 +1091,6 @@ dropButton.addEventListener('contextmenu', (event) => {
 const buttons = document.querySelectorAll('button');
 
 buttons.forEach(button => {
-  button.addEventListener('pointerup', (event) => {
-    
-    event.target.style.scale = "1";
-    event.target.style.backgroundColor = "rgba(100,100,100,0.5)";
-    
-  });
 
   button.addEventListener('contextmenu', (event) => {
     event.preventDefault();
@@ -824,6 +1107,13 @@ redButtons.forEach(button => {
     event.target.style.backgroundColor = "#EF233C";
     
   });
+
+  button.addEventListener('pointerup', (event) => {
+    
+    button.style.scale = "1";
+    button.style.backgroundColor = "rgba(100,100,100,0.5)";
+    
+  });
 });
 
 // Blue buttons
@@ -834,6 +1124,13 @@ blueButtons.forEach(button => {
     
     event.target.style.scale = "0.9";
     event.target.style.backgroundColor = "rgba(30,30,200,0.2)";
+    
+  });
+
+  button.addEventListener('pointerup', (event) => {
+    
+    button.style.scale = "1";
+    button.style.backgroundColor = "rgba(100,100,100,0.5)";
     
   });
 });
@@ -857,41 +1154,123 @@ tipButtons.forEach(button => {
 
 // Peek button
 const peekButtons = document.querySelectorAll('.peekButton');
+peeking = false;
 
 peekButtons.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
     
-    view = "system";
+    if (!peeking) {
+        view = "system";
+        peeking = true;
+    } else {
+        view = "planet";
+        peeking = false;
+    }
+  });
+});
+
+
+// Toggle buttons
+const toggleButtons = document.querySelectorAll('.toggleButton');
+
+toggleButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
     
+    button.style.scale = "0.9";
+
+    if (button.style.backgroundColor == "rgb(20, 204, 146)") {
+        button.style.backgroundColor = "rgba(100,100,100,0.5)";
+    } else {
+        button.style.backgroundColor = "rgb(20, 204, 146)";
+    }
+
   });
 
   button.addEventListener('pointerup', (event) => {
     
-    view = "planet";
+    button.style.scale = "1";
     
   });
 });
 
 
 
+
+// Menu switching
+activeMenu = "mainMenu";
+document.getElementById("deviceMenu").style.display = "none";
+document.getElementById("upgradeMenu").style.display = "none";
+
+function switchMenu(oldActiveMenuID, newActiveMenuID) {
+    document.getElementById(oldActiveMenuID).style.display = "none";
+    document.getElementById(newActiveMenuID).style.display = "flex";
+}
+
+const menuButtons = document.querySelectorAll('.menuButton');
+
+menuButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    extractedId = button.id.toString().slice(0, -6) + "Menu";
+    oldActiveMenuID = activeMenu;
+    activeMenu = extractedId;
+
+    setTimeout(() => {
+        switchMenu(oldActiveMenuID, activeMenu);
+    }, 200);
+
+    
+    
+  });
+});
+
+const returnButtons = document.querySelectorAll('.returnButton');
+
+returnButtons.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    oldActiveMenuID = activeMenu;
+    activeMenu = "mainMenu";
+
+    setTimeout(() => {
+        switchMenu(oldActiveMenuID, activeMenu);
+    }, 200);
+
+    
+    
+  });
+});
+
+
+
+
+
+
 const holdButtons = document.querySelectorAll('.holdButton');
-const HOLD_DURATION = 1500;
+const HOLD_DURATION = 1200;
 
 holdButtons.forEach(button => {
     let animationFrameId;
     let startTime;
-    let defaultText = button.innerHTML;
+    // let defaultText = button.innerHTML;
 
     // Function to completely reset the button state and stop the loop
     const resetBar = () => {
         cancelAnimationFrame(animationFrameId);
         button.style.background = ""; // Resets to the default CSS background
         button.style.scale = "1";
-        button.innerHTML = defaultText;
+        // button.innerHTML = defaultText;
         clearHelp();
+        // updating = true;
         document.getElementById("drillCostMaterial").innerHTML = drillCostMaterial;
         document.getElementById("satelliteCostMaterial").innerHTML = satelliteCostMaterial;
         document.getElementById("bundlerCostMaterial").innerHTML = bundlerCostMaterial;
+        document.getElementById("laserSatelliteCostMaterial").innerHTML = laserSatelliteCostMaterial;
+        
+        document.getElementById("drillRateUpgradeCost").innerHTML = drillRateUpgradeCost;
+        document.getElementById("drillLevel").innerHTML = "LVL " + drillLevel.toString();
+        document.getElementById("collectionRadiusUpgradeCost").innerHTML = collectionRadiusUpgradeCost;
+        document.getElementById("collectionRadiusLevel").innerHTML = "LVL " + collectionRadiusLevel.toString();
     };
 
     // The animation loop that runs every frame while held
@@ -911,18 +1290,27 @@ holdButtons.forEach(button => {
         // If the user has held for the full 3 seconds (100%+)
         if (holdPercentage >= 100) {
             resetBar();
+
             if (button.id == "drill") {
                 deploy();
             } else if (button.id == "satellite") {
                 deploySatellite();
             } else if (button.id == "bundler") {
                 deployBundler();
+            } else if (button.id == "laserSatellite") {
+                deployLaserSatellite();
+            }else if (button.id == "drillRate") {
+                upgradeDrillRate();
+            } else if (button.id == "collectionRadiusUpgrade") {
+                upgradeCollectionLevel();
             }
+
             clearHelp();
             return; // Exit the loop so it doesn't keep running
         }
 
-        button.innerHTML = "DEPLOYING";
+        updating = false;
+        // button.innerHTML = "HOLD TO CONFIRM";
         button.style.scale = "0.9";
 
         // Apply the gradient visually using template literals for cleaner syntax
@@ -996,4 +1384,19 @@ function updateHelp(text) {
 
 function clearHelp() {
     document.getElementById("tipsContainer").style.visibility = "hidden";
+}
+
+
+function updateLevel(parent) {
+//   const parent = document.getElementById(parentId);
+
+
+  const immediateChildren = parent.querySelectorAll(':scope #level');
+
+  immediateChildren.forEach(child => {
+    oldLevel = child.innerHTML;
+    oldLevel = parseInt(oldLevel.at(-1));
+    newLevel = oldLevel + 1;
+    child.innerHTML = "LVL " + newLevel.toString();
+  });
 }
