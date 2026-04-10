@@ -140,8 +140,8 @@ function mainThread() {
         p.currentRotation += p.orbitSpeed;
     }
 
-    randomNumber = Math.floor(Math.random() * 10000);
-    if (randomNumber == 50) spawnComet();
+    randomNumber = Math.floor(Math.random() * 2000);
+    if (randomNumber == 1) spawnComet();
 
     // Shrink Planet
     // Count miners
