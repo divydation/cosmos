@@ -25,8 +25,8 @@ let planetRadius = 100;
 let planetOrbitSpeed = 0.0005;
 let planetOrbit = Math.random()*toRadians(360);
 
-let energy = 100;
-let material = 500;
+let energy = 0;
+let material = 5;
 
 offset = 0;
 maxOffset = 10;
@@ -139,6 +139,9 @@ function mainThread() {
         let p = planets[i];
         p.currentRotation += p.orbitSpeed;
     }
+
+    randomNumber = Math.floor(Math.random() * 10000);
+    if (randomNumber == 50) spawnComet();
 
     // Shrink Planet
     // Count miners
@@ -254,9 +257,9 @@ function mainThread() {
                 p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
                 
             } else {
-                p.radius += 0.5;
+                p.radius += p.radiusChange;
 
-                if (p.radius > 600) p.alpha -= 0.1;
+                if (p.radius > 600 || p.radius < planetRadius) p.alpha -= 0.1;
 
                 if (p.alpha < 0) {
                     materialsToCollect.splice(i, 1);
@@ -323,6 +326,8 @@ function mainThread() {
                 materialsToCollect.push({
                     radius: p.radius,
                     angle: p.angle,
+                    radiusChange: 0.5,
+                    angleChange: 0,
                     alpha: 1,
                     timeInTractorBeam: 0,
                     value: 1,
@@ -357,12 +362,19 @@ function mainThread() {
         // Satellites orbit faster if they are closer to the planet
         p.angle += p.rotationSpeed;
 
-        p.productionTimer += dt;
+        p.damageStored += 0.2;
 
-        if (p.productionTimer >= 500 && p.powerStored < 500) { 
-            p.powerStored += 1;
-            p.productionTimer = 0;
-        }
+        // p.productionTimer += dt;
+        // p.timeSinceLastShot += dt;
+
+        // p.timeSinceLastShot = Math.min(p.timeSinceLastShot, 5000)
+
+        // if (p.productionTimer >= 500) { 
+        //     p.damageStored += 1;
+        //     p.productionTimer = 0;
+        // }
+
+        p.damageStored = Math.min(p.damageStored, 50)
 
         laserSatPosition = polarToCartesian(p.radius, p.angle);
 
@@ -387,13 +399,20 @@ function mainThread() {
             }
         }
 
-        if  (closestComet != null) {
+        if  (closestComet != null && p.damageStored > 0) {
             closestCometPosition = {
                 x: closestComet.currentX,
                 y: closestComet.currentY,
             }
 
-            closestComet.material -= 1;
+            // Laser does more damage if it has more damage stored up
+            dmgPerFrameMax = 0.35;
+            dmgPerFrameMin = 0.05;
+            damagePerFrame = dmgPerFrameMin + (p.damageStored - 0.1) * (dmgPerFrameMax / 50);
+            closestComet.material -= damagePerFrame;
+
+            p.damageStored -= 0.5;
+            p.damageStored = Math.max(p.damageStored, 0);
 
             drawLine = isLaserBlocked(laserSatPosition, closestCometPosition);
 
@@ -426,7 +445,7 @@ function mainThread() {
                 ctx.beginPath();
                 ctx.moveTo(laserSatPosition.x, laserSatPosition.y);
                 ctx.lineTo(closestCometPosition.x, closestCometPosition.y);
-                ctx.lineWidth = Math.random() * 7;
+                ctx.lineWidth = Math.random() * p.damageStored/2 + Math.random() * 5;
                 // ctx.setLineDash([5, 5])
                 // ctx.lineDashOffset = -offset;
                 ctx.stroke();
@@ -515,11 +534,21 @@ function mainThread() {
         comet.rotation += comet.rotationSpeed;
 
         // Check if the comet is done
-        if (comet.progress >= 1) {
+        if (comet.progress >= 1 || comet.material < 0) {
+            bundles.push({
+                radius: cartesianToPolar(comet.currentX, comet.currentY).radius,
+                angle: cartesianToPolar(comet.currentX, comet.currentY).angle,
+                rotation: cartesianToPolar(comet.currentX, comet.currentY).angle,
+                rotationSpeed: 0.1,
+                mineralsAmount: comet.material,
+                timeInTractorBeam: 0,
+            });
             comets.splice(i, 1);
             i--; // Adjust the index so we don't skip the next comet
             continue; 
         }       
+
+        
 
         comet.currentX = comet.startX + (comet.finishX - comet.startX) * comet.progress;
         comet.currentY = comet.startY + (comet.finishY - comet.startY) * comet.progress;
@@ -568,11 +597,15 @@ function mainThread() {
 }
 
 
-
+count = 0;
 
 
 
 // Calculations
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function calculateDistance(objectOne, objectTwo) {
 
@@ -593,6 +626,25 @@ function polarToCartesian(radius, angle, centerX = 500, centerY = 500) {
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle)
     };
+}
+
+function cartesianToPolar(objectX, objectY) {
+    // 1. Get relative distance from the center (500, 500)
+    const dx = objectX - 500;
+    const dy = objectY - 500;
+
+    // 2. Calculate the radius (distance from center)
+    const radius = Math.sqrt(dx * dx + dy * dy);
+
+    // 3. Calculate the angle in radians
+    const angle = Math.atan2(dy, dx);
+
+    polarCoordinates = {
+        radius: radius,
+        angle: angle,
+    }
+
+    return polarCoordinates;
 }
 
 function isLaserBlocked(sat, comet) {
@@ -697,10 +749,10 @@ function canvasDrawPowerTransmission() {
 
 function canvasDrawMaterials(p) {
     ctx.save();
-    ctx.translate(500,500);
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     ctx.rotate(p.angle);
     ctx.fillStyle = `rgba(46, 191, 165, ${p.alpha})`;
-    ctx.fillRect(p.radius, -4, 8, 8);
+    ctx.fillRect(0, -4, 8, 8);
     ctx.restore();
 }
 
@@ -741,12 +793,15 @@ function canvasDrawLaserSatellites(p) {
 
     ctx.fillStyle = "rgb(255 255 255)";
     ctx.fillRect(-satelliteSize/8, -satelliteSize, satelliteSize/4, satelliteSize*2);
-    ctx.fillRect(-satelliteSize, -satelliteSize/2, satelliteSize*2, satelliteSize);
+    ctx.fillRect(-satelliteSize, -satelliteSize/2, satelliteSize, satelliteSize);
+    ctx.beginPath()
+    ctx.arc(satelliteSize/2,0,satelliteSize/2, toRadians(270), toRadians(90), true);
+    ctx.fill();
+    // ctx.fillRect(0, -satelliteSize/5, satelliteSize, satelliteSize/4);
 
     ctx.restore();
 }
 
-deployLaserSatellite();
 
 function canvasDrawBundler(p) {
     ctx.save();
@@ -803,7 +858,7 @@ function canvasDrawComet(comet) {
     ctx.translate(comet.currentX, comet.currentY);
     ctx.rotate(comet.rotation);
     ctx.fillStyle = `rgba(100, 100, 100, 1)`;
-    ctx.fillRect(-15, -15, 30, 30);
+    ctx.fillRect(-comet.material/6, -comet.material/6, comet.material/3, comet.material/3);
     ctx.restore();
 }
 
@@ -859,7 +914,7 @@ function spawnComet() {
         speed: 0.001, // Adjust for how fast they cross (0.01 is very fast)
         rotation: 0,
         rotationSpeed: (Math.random() - 0.5) * 0.05,
-        material: 100
+        material: 50 + (Math.random() * 100)
     });
 }
 
@@ -1010,6 +1065,7 @@ function deployLaserSatellite() {
         rotationSpeed: shipRotationSpeed,
         damageStored: 0,
         productionTimer: 0,
+        timeSinceLastShot: 0,
     });
 }
 
