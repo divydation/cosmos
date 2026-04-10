@@ -26,7 +26,7 @@ let planetOrbitSpeed = 0.0005;
 let planetOrbit = Math.random()*toRadians(360);
 
 let energy = 0;
-let material = 5;
+let material = 500;
 
 offset = 0;
 maxOffset = 10;
@@ -117,7 +117,7 @@ function mainThread() {
     shipX = 500 + (flightRadius + 12.5) * Math.cos(shipRotation);
     shipY = 500 + (flightRadius + 12.5) * Math.sin(shipRotation);
     
-    let shipPosition = {
+    shipPosition = {
         x: shipX,
         y: shipY
     };
@@ -678,7 +678,7 @@ function isLaserBlocked(sat, comet) {
 
 
 
-
+deploySatellite();
 
 // Drawing
 function canvasDrawPowerTransmission() {
@@ -693,6 +693,7 @@ function canvasDrawPowerTransmission() {
 
         // 2. Calculate the difference in X and Y
         distance = calculateDistance(satPos, shipPosition);
+        console.log(distance);
 
         // 4. Check if distance is 10 or less
         if (distance <= 100**2) {
