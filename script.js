@@ -7,11 +7,10 @@ document.body.classList.add("stop-scrolling");
 screenHeight = document.body.offsetHeight;
 canvas.height = screenHeight;
 
-// Start 
-window.requestAnimationFrame(mainThread);
+
 
 let flightRadius = 200;
-let targetRadius = 200;
+let targetRadius = flightRadius;
 let shipWidth = 25;
 let shipHeight = 25;
 
@@ -27,6 +26,7 @@ let planetOrbit = Math.random()*toRadians(360);
 
 let energy = 0;
 let material = 5;
+let crystal = 5;
 
 offset = 0;
 maxOffset = 10;
@@ -39,20 +39,22 @@ let shipPosition = {
 };
 
 // Techology
-const drills = [] // Store the previous particles
-const materialsToCollect = [];
+let drills = [] // Store the previous particles
+let materialsToCollect = [];
 
-const satellites = [];
+let satellites = [];
 
-const bundlers = [];
-const bundles = [];
+let bundlers = [];
+let bundles = [];
 
-const comets = [];
+let crystals = [];
 
-const laserSatellites = [];
+let comets = [];
+
+let laserSatellites = [];
 
 // Particles
-const fire = [];
+let fire = [];
 
 
 
@@ -83,14 +85,14 @@ collectionRadiusLevel = 1;
 let lastTime = Date.now();
 const TARGET_FPS = 60;
 const MS_PER_FRAME = 1000 / TARGET_FPS; // ~16.66ms
-
+setInterval(saveGame, 1000);
 
 
 updating = true;
 
-// const intervalId = setInterval(() => {
-    
-// }, 1);
+
+
+
 
 function mainThread() {
     // Clear canvas
@@ -692,7 +694,6 @@ function canvasDrawPowerTransmission() {
 
         // 2. Calculate the difference in X and Y
         distance = calculateDistance(satPos, shipPosition);
-        console.log(distance);
 
         // 4. Check if distance is 10 or less
         if (distance <= 100**2) {
@@ -922,7 +923,7 @@ function spawnComet() {
 
 
 
-const planets = [];
+let planets = [];
 
 planets.push({
     name: "redPlanet",
@@ -1456,3 +1457,86 @@ function updateLevel(parent) {
     child.innerHTML = "LVL " + newLevel.toString();
   });
 }
+
+
+
+// Save the game
+function saveGame() {
+    const gameState = {
+        energy,
+        material,
+        flightRadius,
+        targetRadius,
+        shipRotation,
+        planetRotation,
+        planetOrbit,
+
+        // Progress & Costs
+        drillCostMaterial,
+        satelliteCostMaterial,
+        bundlerCostMaterial,
+        laserSatelliteCostMaterial,
+        drillRateUpgradeCost,
+        collectionRadiusUpgradeCost,
+        drillProductionRate,
+        drillLevel,
+        collectionRadius,
+        collectionRadiusLevel,
+
+        // Arrays
+        drills,
+        satellites,
+        bundlers,
+        laserSatellites,
+        planets,
+        materialsToCollect,
+        bundles
+    };
+
+    localStorage.setItem("spaceMiningSave", JSON.stringify(gameState));
+    console.log("Game Saved!");
+}
+
+
+function loadGame() {
+    const savedData = localStorage.getItem("spaceMiningSave");
+    if (!savedData) return; // No save found, just start fresh
+
+    const state = JSON.parse(savedData);
+
+    // Restore simple variables
+    energy = state.energy;
+    material = state.material;
+    flightRadius = state.flightRadius;
+    targetRadius = state.targetRadius;
+    shipRotation = state.shipRotation;
+    planetRotation = state.planetRotation;
+    planetOrbit = state.planetOrbit;
+    
+    drillCostMaterial = state.drillCostMaterial;
+    satelliteCostMaterial = state.satelliteCostMaterial;
+    bundlerCostMaterial = state.bundlerCostMaterial;
+    laserSatelliteCostMaterial = state.laserSatelliteCostMaterial;
+    drillRateUpgradeCost = state.drillRateUpgradeCost;
+    collectionRadiusUpgradeCost = state.collectionRadiusUpgradeCost;
+    
+    drillProductionRate = state.drillProductionRate;
+    drillLevel = state.drillLevel;
+    collectionRadius = state.collectionRadius;
+    collectionRadiusLevel = state.collectionRadiusLevel;
+
+    drills = state.drills;
+    satellites = state.satellites;
+    bundlers = state.bundlers;
+    laserSatellites = state.laserSatellites;
+    planets = state.planets;
+    materialsToCollect = state.materialsToCollect;
+    bundles = state.bundles;
+
+    console.log("Game Loaded!");
+}
+
+loadGame();
+
+// Start 
+window.requestAnimationFrame(mainThread);
