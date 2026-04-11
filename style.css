@@ -197,6 +197,13 @@ button > svg {
     stroke: #2EBFA5;
 }
 
+.crystal {
+    stroke-width: 1;
+    color: #d338f2;
+    fill: #d338f2;
+    stroke: #d338f2;
+}
+
 .tips {
     width: 86vw;
     height: 20vw;
