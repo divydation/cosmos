@@ -964,7 +964,7 @@ function drawSolarSystem() {
     for (let i = 0; i < planets.length; i++) {
         let p = planets[i];
 
-        p.currentRotation += p.orbitSpeed;
+        // p.currentRotation += p.orbitSpeed;
 
         // Shadow
         ctx.save();
