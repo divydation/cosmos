@@ -40,44 +40,57 @@ html, body {
 canvas {
     background-color: rgba(20,20,20);
     /* width: 500px;*/
-    width: 100vw;
     /* height: 100vh;  */
-    image-rendering: pixelated;
+    /* image-rendering: pixelated; */
+    /* image-rendering: crisp-edges; */
     top: 0;
 }
 
-.lowerHUD {
-    position: absolute;
-    bottom: 8vw;
-    z-index: 100;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    /* height: 50vh; */
-    width: 100vw;
-    gap: 2vw 2vw;
-    flex-wrap: wrap;
+@media (orientation: portrait) {
+  
+    canvas {
+        width: 100vw;
+    }
+
+
+    .lowerHUD {
+        position: absolute;
+        bottom: 8vw;
+        z-index: 100;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        /* height: 50vh; */
+        width: 100vw;
+        gap: 2vw 2vw;
+        flex-wrap: wrap;
+    }
+
+    button {
+        width: 20vw;
+        height: 20vw;
+        font-size: 5vw;
+        border-radius: 4vw;
+        outline: none;
+        border: none;
+        background: rgba(100,100,100,0.5);
+        color: white;
+        font-family: "Silkscreen";
+        transition: 0.1s;
+        touch-action: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1vw;
+    }
+
 }
 
-button {
-    width: 20vw;
-    height: 20vw;
-    font-size: 5vw;
-    border-radius: 4vw;
-    outline: none;
-    border: none;
-    background: rgba(100,100,100,0.5);
-    color: white;
-    font-family: "Silkscreen";
-    transition: 0.1s;
-    touch-action: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 1vw;
-}
+
+
+
 
 .emptyButton {
     background: rgba(100,100,100,0.25);
@@ -199,7 +212,7 @@ button > svg {
 
 .crystal {
     stroke-width: 1;
-    color: #d338f2;
+    color: rgb(211, 54, 242);
     fill: #d338f2;
     stroke: #d338f2;
 }
