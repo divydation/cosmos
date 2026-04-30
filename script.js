@@ -3,9 +3,23 @@ const ctx = canvas.getContext("2d");
 
 document.body.classList.add("stop-scrolling");
 
+
 // Set the canvas to the height of the device screen
 screenHeight = document.body.offsetHeight;
-canvas.height = screenHeight;
+screenWidth = document.body.offsetWidth;
+
+canvasInternalHeight = 1000;
+scale = screenHeight / canvasInternalHeight;
+
+
+if (screenWidth > screenHeight) {
+    canvas.style.scale = scale;
+    canvas.height = screenHeight/scale;
+    canvas.width = screenWidth/scale;
+} else {
+    canvas.style.width = "100vw";
+    canvas.height = screenHeight;
+}
 
 
 
@@ -26,7 +40,7 @@ let planetOrbit = Math.random()*toRadians(360);
 
 let energy = 0;
 let material = 5;
-let crystal = 5;
+let crystal = 0;
 
 offset = 0;
 maxOffset = 10;
@@ -85,7 +99,7 @@ collectionRadiusLevel = 1;
 let lastTime = Date.now();
 const TARGET_FPS = 60;
 const MS_PER_FRAME = 1000 / TARGET_FPS; // ~16.66ms
-setInterval(saveGame, 1000);
+setInterval(saveGame, 2000);
 
 
 updating = true;
@@ -100,6 +114,7 @@ function mainThread() {
 
     document.getElementById("energyText").innerHTML = formatNumber(energy);
     document.getElementById("materialText").innerHTML = formatNumber(material);
+    document.getElementById("crystalText").innerHTML = formatNumber(crystal);
 
     // Timing control
     let now = Date.now();
@@ -125,11 +140,11 @@ function mainThread() {
     };
 
     if (riseButtonHeld) {
-        targetRadius += 3;
+        targetRadius += 2;
     }
 
     if (dropButtonHeld) {
-        targetRadius -= 3;
+        targetRadius -= 2;
     }
 
     if (targetRadius < 110) targetRadius = 110;
@@ -223,10 +238,10 @@ function mainThread() {
 
     // Rotate to Draw ship
     ctx.save();
-    ctx.translate(500,500);
+    ctx.translate(shipX,shipY);
     ctx.rotate(shipRotation);
     ctx.fillStyle = "rgb(255 255 255)";
-    ctx.fillRect(flightRadius, -12.5, 25, 25);
+    ctx.fillRect(-12.5, -12.5, 25, 25);
     ctx.restore();
 
     // Draw materials floating
@@ -283,7 +298,8 @@ function mainThread() {
                     if (distance <= 15**2) {
                         materialsToCollect.splice(i, 1);
                         i--;
-                        b.mineralsStored += Math.floor(p.value);
+                        // b.mineralsStored += Math.floor(p.value);
+                        material += p.value;
                     } 
 
                     if (distance <= collectionRadius**2) {
@@ -349,7 +365,7 @@ function mainThread() {
 
         p.productionTimer += dt;
 
-        if (p.productionTimer >= 4000 && p.powerStored < 500) { 
+        if (p.productionTimer >= 3000 && p.powerStored < 500) { 
             p.powerStored += 1;
             p.productionTimer = 0;
         }
@@ -466,21 +482,21 @@ function mainThread() {
         // Bundlers orbit faster if they are closer to the planet
         p.angle += p.orbitSpeed;
 
-        if (p.battery > 0) {
-            // Bundle the amount of minerals every 10 seconds
-            if (p.mineralsStored > 50) { 
-                bundles.push({
-                    radius: p.radius,
-                    angle: p.angle,
-                    rotation: p.angle,
-                    rotationSpeed: p.rotationSpeed,
-                    mineralsAmount: p.mineralsStored,
-                    timeInTractorBeam: 0,
-                });
+        // If the bundler has power and at least 50 material (could be more) push a bundle out
+        // if (p.battery > 0) {
+        //     if (p.mineralsStored > 50) { 
+        //         bundles.push({
+        //             radius: p.radius,
+        //             angle: p.angle,
+        //             rotation: p.angle,
+        //             rotationSpeed: p.rotationSpeed,
+        //             mineralsAmount: p.mineralsStored,
+        //             timeInTractorBeam: 0,
+        //         });
 
-                p.mineralsStored = 0; 
-            }
-        }        
+        //         p.mineralsStored = 0; 
+        //     }
+        // }        
         
         canvasDrawBundler(p);
     }
@@ -489,8 +505,6 @@ function mainThread() {
     for (let i = 0; i < bundles.length; i++) {
         let p = bundles[i];
 
-        // Bundlers orbit faster if they are closer to the planet
-        // p.angle += p.rotationSpeed;
 
         p.rotation += p.rotationSpeed;
 
@@ -525,6 +539,44 @@ function mainThread() {
         canvasDrawBundle(p);
     }
 
+    // Draw crystals
+    for (let i = 0; i < crystals.length; i++) {
+        let p = crystals[i];
+
+
+        p.rotation += p.rotationSpeed;
+
+        const crystalPosition = polarToCartesian(p.radius, p.angle);
+
+        distance = calculateDistance(crystalPosition, shipPosition);
+
+        if (distance <= 15**2) {
+
+            crystals.splice(i, 1);
+            i--;
+            crystal += Math.floor(p.crystalAmount);
+
+        } 
+
+        // 4. Check if distance is 10 or less
+        if (distance <= collectionRadius**2) {
+            
+            p.timeInTractorBeam += 0.05;
+
+            // start moving towards ship
+            p.radius += (flightRadius + 7.5 - p.radius) * Math.min(p.timeInTractorBeam, 1);
+
+            // Magically wraps the difference between -PI and PI
+            let angleDiff = Math.atan2(Math.sin(shipRotation - p.angle), Math.cos(shipRotation - p.angle));
+            
+            p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
+            
+        }
+
+        
+        canvasDrawCrystal(p);
+    }
+
 
 
     // Comets
@@ -535,25 +587,34 @@ function mainThread() {
         comet.progress += comet.speed;
         comet.rotation += comet.rotationSpeed;
 
+        comet.currentX = comet.startX + (comet.finishX - comet.startX) * comet.progress;
+        comet.currentY = comet.startY + (comet.finishY - comet.startY) * comet.progress;
+
         // Check if the comet is done
-        if (comet.progress >= 1 || comet.material < 0) {
-            bundles.push({
+        if (comet.progress >= 1) {
+            comets.splice(i, 1);
+            i--; // Adjust the index so we don't skip the next comet
+            continue; 
+        }    
+        
+        // Check if the comet is destroyed
+        if (comet.material <= 0) {
+            crystals.push({
                 radius: cartesianToPolar(comet.currentX, comet.currentY).radius,
                 angle: cartesianToPolar(comet.currentX, comet.currentY).angle,
                 rotation: cartesianToPolar(comet.currentX, comet.currentY).angle,
                 rotationSpeed: 0.1,
-                mineralsAmount: comet.material,
+                crystalAmount: 1,
                 timeInTractorBeam: 0,
             });
             comets.splice(i, 1);
             i--; // Adjust the index so we don't skip the next comet
             continue; 
-        }       
+        }   
 
         
 
-        comet.currentX = comet.startX + (comet.finishX - comet.startX) * comet.progress;
-        comet.currentY = comet.startY + (comet.finishY - comet.startY) * comet.progress;
+        
         
         canvasDrawComet(comet);
     }
@@ -814,11 +875,10 @@ function canvasDrawBundler(p) {
     // Only rotate if bundler has battery
     if (p.battery > 1) {
         p.rotation += p.rotationSpeed;
-        p.battery -= 0.0075;
     } else if (p.battery > 0) {
         p.rotation += p.rotationSpeed * (p.battery);
-        p.battery -= 0.0075;
     }
+    p.battery -= 0.005;
 
     
     ctx.rotate(p.rotation);
@@ -850,6 +910,15 @@ function canvasDrawBundle(p) {
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     ctx.rotate(p.rotation);
     ctx.fillStyle = `rgba(46, 191, 165, 1)`;
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.restore();
+}
+
+function canvasDrawCrystal(p) {
+    ctx.save();
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+    ctx.rotate(p.rotation);
+    ctx.fillStyle = `rgb(211, 54, 242)`;
     ctx.fillRect(-8, -8, 16, 16);
     ctx.restore();
 }
@@ -1360,6 +1429,9 @@ holdButtons.forEach(button => {
                 upgradeDrillRate();
             } else if (button.id == "collectionRadiusUpgrade") {
                 upgradeCollectionLevel();
+            } else if (button.id == "resetButton") {
+                localStorage.clear();
+                window.location.reload();
             }
 
             clearHelp();
@@ -1465,6 +1537,7 @@ function saveGame() {
     const gameState = {
         energy,
         material,
+        crystal,
         flightRadius,
         targetRadius,
         shipRotation,
@@ -1490,11 +1563,12 @@ function saveGame() {
         laserSatellites,
         planets,
         materialsToCollect,
-        bundles
+        bundles,
+        crystals
     };
 
     localStorage.setItem("spaceMiningSave", JSON.stringify(gameState));
-    console.log("Game Saved!");
+    // console.log("Game Saved!");
 }
 
 
@@ -1507,6 +1581,7 @@ function loadGame() {
     // Restore simple variables
     energy = state.energy;
     material = state.material;
+    crystal = state.crystal;
     flightRadius = state.flightRadius;
     targetRadius = state.targetRadius;
     shipRotation = state.shipRotation;
@@ -1532,8 +1607,9 @@ function loadGame() {
     planets = state.planets;
     materialsToCollect = state.materialsToCollect;
     bundles = state.bundles;
+    crystals = state.crystals
 
-    console.log("Game Loaded!");
+    // console.log("Game Loaded!");
 }
 
 loadGame();
