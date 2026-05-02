@@ -90,6 +90,19 @@ canvas {
 
 }
 
+button {
+    /* Prevents the default "darkening" or "highlight" box on mobile */
+    -webkit-tap-highlight-color: transparent;
+    
+    /* Optional: Prevents the system context menu (like 'save image') 
+       from popping up during long presses, which can interfere 
+       with your hold-to-deploy mechanic */
+    -webkit-touch-callout: none;
+    
+    /* Ensures text/buttons aren't accidentally selected while tapping fast */
+    user-select: none;
+}
+
 
 
 
