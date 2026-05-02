@@ -36,6 +36,7 @@
         justify-content: center;
         flex-direction: column;
         gap: 1vw;
+        /* text-shadow: 0 0 1vw #fff; */
     }
 
 
