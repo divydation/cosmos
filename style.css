@@ -84,6 +84,8 @@ canvas {
         justify-content: center;
         flex-direction: column;
         gap: 1vw;
+        /* box-shadow: 0 0 5vw 0.1vw #EF233C; */
+        /* text-shadow: 0 0 1vw #fff; */
     }
 
 }
@@ -249,3 +251,4 @@ button > svg {
 /* .deviceMenu {
     display: none !important;
 } */
+
