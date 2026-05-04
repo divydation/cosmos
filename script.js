@@ -22,37 +22,10 @@ if (screenWidth > screenHeight) {
 }
 
 
-
-
-
-
-// planets.push({
-//     name: "bluePlanet",
-//     radius: 70,
-//     orbitRadius: 300,
-//     orbitSpeed: 0.001,
-//     currentRotation: Math.random()*toRadians(360),
-//     hasShip: false,
-//     selected: false,
-//     color: "#2375ef",
-// });
-
-// planets.push({
-//     name: "orangePlanet",
-//     radius: 120,
-//     orbitRadius: 370,
-//     orbitSpeed: 0.004,
-//     currentRotation: Math.random()*toRadians(360),
-//     hasShip: false,
-//     selected: false,
-//     color: "#ef6a23",
-// });
-
-
-
-
 let flightRadius = 200;
 let targetRadius = flightRadius;
+let targetBoost = 0;
+let boostAmount = 0;
 let shipWidth = 25;
 let shipHeight = 25;
 
@@ -61,12 +34,8 @@ let shipRotationSpeed = 0.01;
 changeShipSpeed();
 
 
-// let planetRadius = 100;
-// let planetOrbitSpeed = 0.0005;
-// let planetOrbit = Math.random()*toRadians(360);
-
 let energy = 0;
-let material = 5;
+let material = 5000;
 let crystal = 0;
 
 offset = 0;
@@ -79,15 +48,7 @@ let shipPosition = {
     y: shipY
 };
 
-// Techology
-// let drills = [] 
-// let materialsToCollect = [];
-// let satellites = [];
-// let collectors = [];
-// let bundles = [];
-// let crystals = [];
-// let comets = [];
-// let laserSatellites = [];
+
 
 // Particles
 let fire = [];
@@ -102,6 +63,8 @@ drillCostMaterial = 5;
 satelliteCostMaterial = 25;
 bundlerCostMaterial = 50;
 laserSatelliteCostMaterial = 50;
+refineryCostMaterial = 250;
+smartCollectorCostMaterial = 500;
 
 drillRateUpgradeCost = 100;
 collectionRadiusUpgradeCost = 100;
@@ -138,9 +101,11 @@ planets.push({
     color: "#EF233C",
     description: "Home",
     drills: [],
+    refineries: [],
     materialsToCollect: [],
     satellites: [],
     collectors: [],
+    smartCollectors: [],
     bundles: [],
     crystals: [],
     comets: [],
@@ -160,9 +125,11 @@ planets.push({
     color: "#2375ef",
     description: "Closer to the sun - great for solar power.",
     drills: [],
+    refineries: [],
     materialsToCollect: [],
     satellites: [],
     collectors: [],
+    smartCollectors: [],
     bundles: [],
     crystals: [],
     comets: [],
@@ -182,9 +149,11 @@ planets.push({
     color: "#ef6a23",
     description: "The large mass attracts more comets.",
     drills: [],
+    refineries: [],
     materialsToCollect: [],
     satellites: [],
     collectors: [],
+    smartCollectors: [],
     bundles: [],
     crystals: [],
     comets: [],
@@ -227,7 +196,19 @@ function mainThread() {
         targetRadius -= 2;
     }
 
-    if (riseButtonHeld || dropButtonHeld) {
+    if (boostButtonHeld && targetBoost < 5) {
+        targetBoost += 1;
+    }
+
+    if (!boostButtonHeld && targetBoost > 0) {
+        targetBoost -= 1;
+    }
+
+    boostAmount += (targetBoost - boostAmount) * 0.05;
+
+    shipRotation += boostAmount/1000;
+
+    if (riseButtonHeld || dropButtonHeld || boostButtonHeld) {
         // Add flame particle
         fire.push({
             radius: flightRadius + 6 + Math.random() * 10 - 5,
@@ -247,7 +228,15 @@ function mainThread() {
         if (p.hasShip) {
             if (targetRadius < (planet.radius + 15)) targetRadius = (planet.radius + 15);
             if (targetRadius > 450) targetRadius = 450;
-            flightRadius += (targetRadius - flightRadius) * 0.05;
+
+            targetRadius = Math.round(targetRadius / 2) * 2;
+
+            if (Math.abs(targetRadius - flightRadius) < 1) {
+                flightRadius = targetRadius; // Snap it perfectly
+            } else {
+                flightRadius += (targetRadius - flightRadius) * 0.05; // Otherwise, keep lerping
+            }
+
             changeShipSpeed();
             break;
         }
@@ -256,6 +245,8 @@ function mainThread() {
     // Rotate ship
     shipRotation += shipRotationSpeed;
     if (shipRotation > toRadians(360)) shipRotation = 0;
+
+    
 
     
 
@@ -423,7 +414,7 @@ function mainThread() {
 
                 p.value *= 1.004;
 
-                if (distance <= 15**2 && drawThisPlanet) {
+                if (distance <= 225 && drawThisPlanet) {
                     planet.materialsToCollect.splice(i, 1);
                     i--;
                     material += Math.floor(p.value);
@@ -493,9 +484,7 @@ function mainThread() {
         for (let i = 0; i < planet.drills.length; i++) {
             let p = planet.drills[i];
 
-            while (p.arrived && p.radius > planet.radius) {
-                p.radius = p.radius - 1;
-            }
+
 
             if (p.radius > planet.radius && !p.arrived) {
                 p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
@@ -517,11 +506,65 @@ function mainThread() {
                         alpha: 1,
                         timeInTractorBeam: 0,
                         value: 1,
+                        refined: false,
                     });
                 }
             }
 
             if (drawThisPlanet) canvasDrawDrills(p);
+        }
+
+        // Draw refineries
+        for (let i = 0; i < planet.refineries.length; i++) {
+            let p = planet.refineries[i];
+
+
+
+            if (p.radius > planet.radius && !p.arrived) {
+                p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
+                p.angle = p.angle + toRadians(p.tangentVelocity * (300 / p.radius) ** 2);
+            } else {
+                p.arrived = true;
+                p.angle = p.angle + planet.rotationSpeed;
+
+                const refineryPosition = polarToCartesian(p.radius, p.angle);
+
+                // Go through the materials
+                for (let j = 0; j < planet.materialsToCollect.length; j++) {
+                    let m = planet.materialsToCollect[j];
+
+                    if (!m.refined) {
+                        materialPosition = polarToCartesian(m.radius, m.angle);
+
+                        distance = calculateDistance(refineryPosition, materialPosition);
+
+                        if (distance <= 2) {
+                            m.value = 2;
+                            m.radius += 10;
+                            m.refined = true;
+                            m.timeInTractorBeam = 0;
+                            break;
+                        } 
+                        
+                        if (distance <= 1000) {
+                            
+                            m.timeInTractorBeam += 0.05;
+
+                            // start moving towards refinery
+                            // m.radius += (p.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
+                            m.radius = p.radius;
+
+                            // Magically wraps the difference between -PI and PI
+                            let angleDiff = Math.atan2(Math.sin(p.angle - m.angle), Math.cos(p.angle - m.angle));
+                            
+                            m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.6);
+                            
+                        } 
+                    } 
+                }
+            }
+
+            if (drawThisPlanet) canvasDrawRefinery(p);
         }
 
         // Draw satellites
@@ -660,6 +703,96 @@ function mainThread() {
             if (drawThisPlanet) canvasDrawBundler(p);
         }
 
+        // Draw smart collectors
+        for (let i = 0; i < planet.smartCollectors.length; i++) {
+            let sc = planet.smartCollectors[i];  
+
+            let closestMaterial = null;
+            let closestDistance = 10000000000000;
+
+            // Go through the materials
+            // Check which are in range
+            // Check which is closest
+            // Move towards it
+            for (let j = 0; j < planet.materialsToCollect.length; j++) {
+                let m = planet.materialsToCollect[j];
+
+                materialPosition = polarToCartesian(m.radius, m.angle);
+                smartCollectorPosition = polarToCartesian(sc.radius, sc.angle);
+
+                distance = calculateDistance(smartCollectorPosition, materialPosition);
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestMaterial = m;
+                }
+
+                if (distance <= 225) {
+                    planet.materialsToCollect.splice(j, 1);
+                    j--;
+                    material += Math.floor(m.value);
+                } else if (distance <= collectionRadius**2) {
+                    
+                    m.timeInTractorBeam += 0.05;
+
+                    // start moving towards smart collector
+                    m.radius += (sc.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
+
+                    // Magically wraps the difference between -PI and PI
+                    let angleDiff = Math.atan2(Math.sin(sc.angle - m.angle), Math.cos(sc.angle - m.angle));
+                    
+                    m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.5);
+                    
+                } 
+            }
+
+            // 1. Physics Constants
+            const maxSpeed = 1.7;     // The top speed it can reach
+            const accel = 0.09;      // Higher = faster startup (0.01 to 0.1)
+            const friction = 0.98;   // Higher = longer glide (0.9 to 0.98)
+
+            // Initialize velocity if it doesn't exist yet
+            sc.vr = sc.vr || 0;
+            sc.va = sc.va || 0;
+
+            let desiredVr = 0;
+            let desiredVa = 0;
+
+            // 2. Targeting Logic (The "Push")
+            if (closestMaterial && closestDistance < 20000) {
+                let rDiff = closestMaterial.radius - sc.radius;
+                let angleDiff = Math.atan2(
+                    Math.sin(closestMaterial.angle - sc.angle), 
+                    Math.cos(closestMaterial.angle - sc.angle)
+                );
+                let arcDiff = angleDiff * sc.radius;
+                let totalDist = Math.hypot(rDiff, arcDiff);
+
+                // Only "push" if we haven't arrived yet
+                if (totalDist > 5) { 
+                    // Calculate the direction vector at max speed
+                    desiredVr = (rDiff / totalDist) * maxSpeed;
+                    desiredVa = (arcDiff / totalDist) * maxSpeed;
+                }
+            }
+
+            // 3. Apply Steering (Acceleration)
+            // This moves the current velocity toward the desired velocity
+            sc.vr += (desiredVr - sc.vr) * accel;
+            sc.va += (desiredVa - sc.va) * accel;
+
+            // 4. Apply Friction (Damping)
+            // This handles the "gliding to a stop" when desiredVr/Va are 0
+            sc.vr *= friction;
+            sc.va *= friction;
+
+            // 5. Apply Velocity to Position
+            sc.radius += sc.vr;
+            sc.angle += (sc.va / sc.radius);
+            
+            if (drawThisPlanet) canvasDrawSmartCollector(sc);
+        }
+
         // Draw bundles
         for (let i = 0; i < planet.bundles.length; i++) {
             let p = planet.bundles[i];
@@ -772,7 +905,7 @@ function mainThread() {
                     crystalAmount: 1,
                     timeInTractorBeam: 0,
                 });
-                comets.splice(i, 1);
+                planet.comets.splice(i, 1);
                 i--; // Adjust the index so we don't skip the next comet
                 continue; 
             }   
@@ -868,7 +1001,7 @@ function isLaserBlocked(sat, comet) {
     const distanceSquared = distDX * distDX + distDY * distDY;
     
     // 6. If distance is less than radius, it's blocked!
-    return distanceSquared < (planetRadius * planetRadius);
+    return distanceSquared < (currentPlanet.radius**2);
 }
 
 
@@ -891,6 +1024,15 @@ function canvasDrawDrills(p) {
     ctx.rotate(p.angle);
     ctx.fillStyle = "rgb(255 255 255)";
     ctx.fillRect(p.radius, -5, 10, 10);
+    ctx.restore();
+}
+
+function canvasDrawRefinery(p) {
+    ctx.save();
+    ctx.translate(500,500);
+    ctx.rotate(p.angle);
+    ctx.fillStyle = "rgb(255 255 255)";
+    ctx.fillRect(p.radius, -5, 20, 10);
     ctx.restore();
 }
 
@@ -952,6 +1094,47 @@ function canvasDrawBundler(p) {
 
     const collectorsize = 20;
     const wingSize = 15;
+    ctx.fillStyle = "rgb(255 255 255)";
+    ctx.strokeStyle = "rgb(255 255 255)";
+    ctx.setLineDash([]);
+    ctx.lineWidth = 5;
+    ctx.fillRect(-(collectorsize/2), -(collectorsize/2), collectorsize, collectorsize);
+
+    // Arm 1
+    ctx.beginPath();
+    ctx.moveTo(wingSize, -(wingSize));
+    ctx.lineTo(-wingSize,wingSize);
+    ctx.stroke();
+
+    // Arm 2
+    ctx.beginPath();
+    ctx.moveTo(-(wingSize), -(wingSize));
+    ctx.lineTo(wingSize,wingSize);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function canvasDrawSmartCollector(p) {
+    ctx.save();
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+    // ctx.rotate(p.angle);
+
+    p.battery = Math.max(p.battery, 0);
+
+    // Only rotate or move if smart collector has battery
+    if (p.battery > 1) {
+        p.rotation += p.rotationSpeed;
+    } else if (p.battery > 0) {
+        p.rotation += p.rotationSpeed * (p.battery);
+    }
+    p.battery -= 0.005;
+
+    
+    ctx.rotate(p.rotation);
+
+    const collectorsize = 13;
+    const wingSize = 7.5;
     ctx.fillStyle = "rgb(255 255 255)";
     ctx.strokeStyle = "rgb(255 255 255)";
     ctx.setLineDash([]);
@@ -1065,7 +1248,7 @@ function drawSolarSystem() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
 
     const scale = 0.1;
-    currentPlanet = null;
+    let activePlanet = null;
     selectedPlanet = null;
 
     // Draw shadows so no overlap
@@ -1087,7 +1270,7 @@ function drawSolarSystem() {
 
         // Pathway from current planet to selected planet
 
-        if (p.hasShip) currentPlanet = p;
+        if (p.hasShip) activePlanet = p;
         if (p.selected) selectedPlanet = p;
 
     }
@@ -1101,12 +1284,12 @@ function drawSolarSystem() {
     ctx.setLineDash([3,3]);
 
 
-    if (currentPlanet != null && selectedPlanet != null) {
+    if (activePlanet != null && selectedPlanet != null) {
         // 1. Setup Sun and Planet data
         let sunX = 500;
         let sunY = 500;
 
-        let planetA = currentPlanet;
+        let planetA = activePlanet;
         let planetB = selectedPlanet;
 
         // Use variables directly to ensure we know which is Start and which is End
@@ -1189,11 +1372,8 @@ function drawSolarSystem() {
         if (p.selected) {
             ctx.beginPath();
             ctx.arc(p.orbitRadius, 0, p.radius*scale*2, 0, Math.PI*2, 1);
-            // ctx.strokeStyle = "#d338f2";
             ctx.strokeStyle = "rgba(255,255,255,0.5";
             ctx.lineWidth = 3;
-        //     ctx.lineWidth = 2; 
-        // ctx.strokeStyle = "rgba(0, 255, 255, 0.6)"; 
             ctx.lineDashOffset = ringOffset;
             ctx.setLineDash([3,3]);
             ctx.stroke();
@@ -1202,7 +1382,7 @@ function drawSolarSystem() {
         // Ship
         if (p.hasShip) {
             ctx.translate(p.orbitRadius,0);
-            ctx.rotate(shipRotation - p.currentRotation);
+            ctx.rotate(shipRotation - p.currentOrbitRotation);
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(p.radius*scale+3, -2.5, 5, 5);
         }
@@ -1229,7 +1409,23 @@ function deploy() {
     currentPlanet.drills.push({
         radius: flightRadius + 12.5,
         angle: shipRotation,
-        tangentVelocity: 0.4,
+        tangentVelocity: 0,
+        inwardsVelocity: 0.2,
+        arrived: false,
+        materialStored: 0,
+        productionTimer: 0,
+    });
+}
+
+function deployRefinery() {
+    if (material < refineryCostMaterial) return;
+    material -= refineryCostMaterial;
+    refineryCostMaterial = Math.floor(refineryCostMaterial * 1.2);
+
+    currentPlanet.refineries.push({
+        radius: flightRadius + 12.5,
+        angle: shipRotation,
+        tangentVelocity: 0,
         inwardsVelocity: 0.2,
         arrived: false,
         materialStored: 0,
@@ -1244,7 +1440,7 @@ function deploySatellite() {
     satelliteCostMaterial = Math.floor(satelliteCostMaterial * 1.1);
 
     currentPlanet.satellites.push({
-        radius: flightRadius + 6,
+        radius: flightRadius + 10,
         angle: shipRotation,
         rotationSpeed: shipRotationSpeed,
         powerStored: 0,
@@ -1259,13 +1455,30 @@ function deployBundler() {
     bundlerCostMaterial = Math.floor(bundlerCostMaterial * 1.1);
 
     currentPlanet.collectors.push({
-        radius: flightRadius + 6,
+        radius: flightRadius + 10,
         angle: shipRotation,
         orbitSpeed: shipRotationSpeed,
         rotation: 0,
         rotationSpeed: 0.1,
         mineralsStored: 0,
         battery: 0,
+    });
+}
+
+function deploySmartCollector() {
+    // Material
+    if (material < smartCollectorCostMaterial) return;
+    material -= smartCollectorCostMaterial;
+    smartCollectorCostMaterial = Math.floor(smartCollectorCostMaterial * 1.1);
+
+    currentPlanet.smartCollectors.push({
+        radius: flightRadius + 6,
+        angle: shipRotation,
+        orbitSpeed: shipRotationSpeed,
+        rotation: 0,
+        rotationSpeed: 0.1,
+        mineralsStored: 0,
+        battery: 10,
     });
 }
 
@@ -1324,6 +1537,7 @@ function changeShipSpeed() {
 // --------- //
 //  BUTTONS  //
 // --------- //
+
 
 function reset(element) {
     element.target.style.scale = "1";
@@ -1388,6 +1602,33 @@ dropButton.addEventListener('pointerleave', (e) => {
 });
 
 dropButton.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+
+// Boost Button
+const boostButton = document.getElementById("boostButton");
+
+boostButtonHeld = false;
+boostButton.addEventListener('pointerdown', (e) => {
+  e.preventDefault(); 
+  boostButtonHeld = true;
+  setRedGlow(e);
+});
+
+boostButton.addEventListener('pointerup', (e) => {
+  e.preventDefault(); 
+  boostButtonHeld = false;
+  reset(e);
+});
+
+boostButton.addEventListener('pointerleave', (e) => {
+    if (boostButtonHeld) {
+        boostButtonHeld = false;
+        reset(e);
+    }
+});
+
+boostButton.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
 
@@ -1614,6 +1855,7 @@ toggleButtons.forEach(button => {
 // Menu switching
 activeMenu = "mainMenu";
 document.getElementById("deviceMenu").style.display = "none";
+document.getElementById("deviceMenuTwo").style.display = "none";
 document.getElementById("upgradeMenu").style.display = "none";
 document.getElementById("planetSelectMenu").style.display = "none";
 
@@ -1631,6 +1873,8 @@ menuButtons.forEach(button => {
     oldActiveMenuID = activeMenu;
     activeMenu = extractedId;
 
+    menuFade();
+
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
     }, 200);
@@ -1640,6 +1884,22 @@ menuButtons.forEach(button => {
   });
 });
 
+
+function menuFade() {
+    setTimeout(() => {
+        buttons.forEach(currentbutton => {
+        currentbutton.style.opacity = "0";
+    });
+    }, 100);
+    
+
+    setTimeout(() => {
+        buttons.forEach(currentbutton => {
+            currentbutton.style.opacity = "1";
+        });
+    }, 250);
+}
+
 const returnButtons = document.querySelectorAll('.returnButton');
 
 returnButtons.forEach(button => {
@@ -1647,13 +1907,47 @@ returnButtons.forEach(button => {
     
     oldActiveMenuID = activeMenu;
     activeMenu = "mainMenu";
-    
 
+    menuFade();
+    
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
     }, 200);
-
     
+  });
+});
+
+
+const deviceMenuTwoButton = document.querySelectorAll('.deviceMenuTwoButton');
+
+deviceMenuTwoButton.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    oldActiveMenuID = activeMenu;
+    activeMenu = "deviceMenuTwo";
+
+    menuFade();
+    
+    setTimeout(() => {
+        switchMenu(oldActiveMenuID, activeMenu);
+    }, 200);
+    
+  });
+});
+
+const deviceMenuOneButton = document.querySelectorAll('.deviceMenuOneButton');
+
+deviceMenuOneButton.forEach(button => {
+  button.addEventListener('pointerdown', (event) => {
+    
+    oldActiveMenuID = activeMenu;
+    activeMenu = "deviceMenu";
+
+    menuFade();
+    
+    setTimeout(() => {
+        switchMenu(oldActiveMenuID, activeMenu);
+    }, 200);
     
   });
 });
@@ -1685,6 +1979,8 @@ holdButtons.forEach(button => {
         document.getElementById("satelliteCostMaterial").innerHTML = satelliteCostMaterial;
         document.getElementById("bundlerCostMaterial").innerHTML = bundlerCostMaterial;
         document.getElementById("laserSatelliteCostMaterial").innerHTML = laserSatelliteCostMaterial;
+        document.getElementById("refineryCostMaterial").innerHTML = refineryCostMaterial;
+        document.getElementById("smartCollectorCostMaterial").innerHTML = smartCollectorCostMaterial;
         
         document.getElementById("drillRateUpgradeCost").innerHTML = drillRateUpgradeCost;
         document.getElementById("drillLevel").innerHTML = "LVL " + drillLevel.toString();
@@ -1718,7 +2014,11 @@ holdButtons.forEach(button => {
                 deployBundler();
             } else if (button.id == "laserSatellite") {
                 deployLaserSatellite();
-            }else if (button.id == "drillRate") {
+            } else if (button.id == "refinery") {
+                deployRefinery();
+            } else if (button.id == "smartCollector") {
+                deploySmartCollector();
+            } else if (button.id == "drillRate") {
                 upgradeDrillRate();
             } else if (button.id == "collectionRadiusUpgrade") {
                 upgradeCollectionLevel();
@@ -1913,6 +2213,10 @@ function loadGame() {
     planets = state.planets;
 
     // console.log("Game Loaded!");
+    for (let i = 0; i < planets.length; i++) {
+        let p = planets[i];
+        if (p.hasShip) currentPlanet = p;
+    }
 }
 
 loadGame();
