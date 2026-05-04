@@ -35,7 +35,7 @@ changeShipSpeed();
 
 
 let energy = 0;
-let material = 5000;
+let material = 10;
 let crystal = 0;
 
 offset = 0;
@@ -1570,7 +1570,7 @@ function deploySmartCollector() {
         rotation: 0,
         rotationSpeed: 0.1,
         mineralsStored: 0,
-        battery: 10,
+        battery: 0,
     });
 }
 
