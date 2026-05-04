@@ -36,11 +36,11 @@
                 <!-- Main Menu -->
                 <div class="mainMenu menu" id="mainMenu">
                     <button id="riseButton" class="">RISE</button>
+                    <button id="boostButton" class="">BOOST</button>
                     <button id="deviceButton" class="wideButton redButton menuButton">DEPLOY<br>MENU</button>
-                    <button id="planetSelectButton" class="redButton menuButton">SOL. SYS.</button>
                     <button id="dropButton" class="">DROP</button>
+                    <button id="planetSelectButton" class="redButton menuButton">SOL. SYS.</button>
                     <button id="upgradeButton" class="wideButton redButton menuButton">UPGRADE MENU</button>
-                    <button id="resetButton" class="holdButton">RESET</button>
                 </div>
             
             
@@ -78,6 +78,13 @@
                         </div>
                     </button>
 
+                    <button class="wideButton redButton returnButton">RETURN</button>
+                    <button class="wideButton redButton deviceMenuTwoButton">NEXT</button>
+                </div>
+
+                 <!-- Device Menu 2-->
+                <div class="deviceMenuTwo menu" id="deviceMenuTwo">
+
                     <button class="hugeButton holdButton" id="laserSatellite">
                         <p>COMET LASER</p>
                         <div class="costs">
@@ -88,7 +95,29 @@
                         </div>
                     </button>
 
-                    <button class="hugeButton redButton returnButton">RETURN</button>
+                    <button class="hugeButton holdButton" id="refinery">
+                        <p>REFINERY</p>
+                        <div class="costs">
+                            <div class="material">
+                                <svg height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="m11.223 2.43177c.2836-.15756.4254-.23634.5755-.26723.133-.02733.27-.02733.403 0 .1501.03089.2919.10967.5755.26723l7.4 4.11111c.2996.1664.4493.2496.5584.36794.0964.10469.1695.22877.2141.36395.0505.15279.0505.32412.0505.66676v8.11707c0 .3427 0 .514-.0505.6668-.0446.1352-.1177.2593-.2141.3639-.1091.1184-.2588.2016-.5584.368l-7.4 4.1111c-.2836.1576-.4254.2363-.5755.2672-.133.0274-.27.0274-.403 0-.1501-.0309-.2919-.1096-.5755-.2672l-7.40003-4.1111c-.29952-.1664-.44928-.2496-.55834-.368-.09647-.1046-.16948-.2287-.21415-.3639-.05048-.1528-.05048-.3241-.05048-.6668v-8.11707c0-.34264 0-.51397.05048-.66676.04467-.13518.11768-.25926.21415-.36395.10906-.11834.25882-.20154.55834-.36794z" stroke-linecap="round" stroke-linejoin="round"/></svg>                        
+                                <p id="refineryCostMaterial">250</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button class="hugeButton holdButton" id="smartCollector">
+                        <p>SMART COLLECTOR</p>
+                        <div class="costs">
+                            <div class="material">
+                                <svg height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="m11.223 2.43177c.2836-.15756.4254-.23634.5755-.26723.133-.02733.27-.02733.403 0 .1501.03089.2919.10967.5755.26723l7.4 4.11111c.2996.1664.4493.2496.5584.36794.0964.10469.1695.22877.2141.36395.0505.15279.0505.32412.0505.66676v8.11707c0 .3427 0 .514-.0505.6668-.0446.1352-.1177.2593-.2141.3639-.1091.1184-.2588.2016-.5584.368l-7.4 4.1111c-.2836.1576-.4254.2363-.5755.2672-.133.0274-.27.0274-.403 0-.1501-.0309-.2919-.1096-.5755-.2672l-7.40003-4.1111c-.29952-.1664-.44928-.2496-.55834-.368-.09647-.1046-.16948-.2287-.21415-.3639-.05048-.1528-.05048-.3241-.05048-.6668v-8.11707c0-.34264 0-.51397.05048-.66676.04467-.13518.11768-.25926.21415-.36395.10906-.11834.25882-.20154.55834-.36794z" stroke-linecap="round" stroke-linejoin="round"/></svg>                        
+                                <p id="smartCollectorCostMaterial">500</p>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button class="wideButton redButton deviceMenuOneButton">BACK</button>
+                    <button class="redButton deviceMenuTwoButton">NEXT</button>
+                    <button id="resetButton" class="holdButton">RESET</button>
                 </div>
 
 
