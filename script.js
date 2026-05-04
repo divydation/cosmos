@@ -35,7 +35,7 @@ changeShipSpeed();
 
 
 let energy = 0;
-let material = 5;
+let material = 5000;
 let crystal = 0;
 
 offset = 0;
@@ -244,7 +244,7 @@ function mainThread() {
 
     // Rotate ship
     shipRotation += shipRotationSpeed;
-    if (shipRotation > toRadians(360)) shipRotation = 0;
+    shipRotation = shipRotation % toRadians(360);
 
     
 
@@ -263,7 +263,8 @@ function mainThread() {
         // Rotate and orbit this planet
         p.currentRotation += p.rotationSpeed;
         p.currentOrbitRotation += p.orbitSpeed;
-        if (planet.currentRotation > toRadians(360)) planet.currentRotation = 0;
+        planet.currentRotation = planet.currentRotation % toRadians(360);
+        
 
         // Set current updates to this planet
         planet = p;
@@ -349,6 +350,21 @@ function mainThread() {
             // 3. Check distance to all collectors
             for (let j = 0; j < planet.collectors.length; j++) {
                 let c = planet.collectors[j];
+                let collectorPos = polarToCartesian(c.radius, c.angle);
+                let collectorDistance = calculateDistance(satPos, collectorPos);
+
+                // If this collector is closer than anything we've checked so far
+                if (collectorDistance < closestDistance) {
+                    closestDistance = collectorDistance;
+                    targetType = 'collector';
+                    targetPos = collectorPos;
+                    closestCollector = c; // Save the reference so we can update its battery later
+                }
+            }
+
+            // 3. Check distance to all smart collectors
+            for (let j = 0; j < planet.smartCollectors.length; j++) {
+                let c = planet.smartCollectors[j];
                 let collectorPos = polarToCartesian(c.radius, c.angle);
                 let collectorDistance = calculateDistance(satPos, collectorPos);
 
@@ -489,9 +505,11 @@ function mainThread() {
             if (p.radius > planet.radius && !p.arrived) {
                 p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
                 p.angle = p.angle + toRadians(p.tangentVelocity * (300 / p.radius) ** 2);
+                p.angle = p.angle % toRadians(360);
             } else {
                 p.arrived = true;
                 p.angle = p.angle + planet.rotationSpeed;
+                p.angle = p.angle % toRadians(360);
                 p.productionTimer += dt;
 
                 if (p.productionTimer >= drillProductionRate) { 
@@ -499,7 +517,7 @@ function mainThread() {
                     p.productionTimer = 0; // Reset the timer
 
                     planet.materialsToCollect.push({
-                        radius: p.radius,
+                        radius: p.radius+4,
                         angle: p.angle,
                         radiusChange: 0.5,
                         angleChange: 0,
@@ -523,9 +541,11 @@ function mainThread() {
             if (p.radius > planet.radius && !p.arrived) {
                 p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
                 p.angle = p.angle + toRadians(p.tangentVelocity * (300 / p.radius) ** 2);
+                p.angle = p.angle % toRadians(360);
             } else {
                 p.arrived = true;
                 p.angle = p.angle + planet.rotationSpeed;
+                p.angle = p.angle % toRadians(360);
 
                 const refineryPosition = polarToCartesian(p.radius, p.angle);
 
@@ -573,6 +593,7 @@ function mainThread() {
 
             // Satellites orbit faster if they are closer to the planet
             p.angle += p.rotationSpeed;
+            p.angle = p.angle % toRadians(360);
 
             p.productionTimer += dt;
 
@@ -590,6 +611,7 @@ function mainThread() {
 
             // Satellites orbit faster if they are closer to the planet
             p.angle += p.rotationSpeed;
+            p.angle = p.angle % toRadians(360);
 
             p.damageStored += 0.2;
 
@@ -682,6 +704,7 @@ function mainThread() {
 
             // collectors orbit faster if they are closer to the planet
             p.angle += p.orbitSpeed;
+            p.angle = p.angle % toRadians(360);
 
             // If the bundler has power and at least 50 material (could be more) push a bundle out
             // DELETED FOR NOW - use later for other mechanic maybe
@@ -714,81 +737,141 @@ function mainThread() {
             // Check which are in range
             // Check which is closest
             // Move towards it
-            for (let j = 0; j < planet.materialsToCollect.length; j++) {
-                let m = planet.materialsToCollect[j];
+            if (sc.battery > 0) {
+                for (let j = 0; j < planet.materialsToCollect.length; j++) {
+                    let m = planet.materialsToCollect[j];
 
-                materialPosition = polarToCartesian(m.radius, m.angle);
-                smartCollectorPosition = polarToCartesian(sc.radius, sc.angle);
 
-                distance = calculateDistance(smartCollectorPosition, materialPosition);
+                    if (m.value < 3) continue;
+                    if (m.radius > 450) continue;
+                    
 
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestMaterial = m;
+                    materialPosition = polarToCartesian(m.radius, m.angle);
+                    smartCollectorPosition = polarToCartesian(sc.radius, sc.angle);
+
+                    distance = calculateDistance(smartCollectorPosition, materialPosition);
+
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestMaterial = m;
+                    }
+
+                    if (distance <= 225) {
+                        planet.materialsToCollect.splice(j, 1);
+                        j--;
+                        material += Math.floor(m.value);
+                        sc.battery -= 0.1;
+                    } else if (distance <= collectionRadius**2) {
+                        
+                        m.timeInTractorBeam += 0.05;
+
+                        // start moving towards smart collector
+                        m.radius += (sc.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
+
+                        // Magically wraps the difference between -PI and PI
+                        let angleDiff = Math.atan2(Math.sin(sc.angle - m.angle), Math.cos(sc.angle - m.angle));
+                        
+                        m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.5);
+                        
+                    } 
                 }
 
-                if (distance <= 225) {
-                    planet.materialsToCollect.splice(j, 1);
-                    j--;
-                    material += Math.floor(m.value);
-                } else if (distance <= collectionRadius**2) {
-                    
-                    m.timeInTractorBeam += 0.05;
+                if (closestMaterial) {
+                    // 1. Calculate raw differences
+                    let rDiff = closestMaterial.radius - sc.radius;
+                    let angleDiff = Math.atan2(
+                        Math.sin(closestMaterial.angle - sc.angle), 
+                        Math.cos(closestMaterial.angle - sc.angle)
+                    );
 
-                    // start moving towards smart collector
-                    m.radius += (sc.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
+                    // 2. Convert Angle difference to "Arc Distance" (actual pixels)
+                    // Distance = Radius * Angle
+                    let arcDiff = angleDiff * sc.radius;
 
-                    // Magically wraps the difference between -PI and PI
-                    let angleDiff = Math.atan2(Math.sin(sc.angle - m.angle), Math.cos(sc.angle - m.angle));
-                    
-                    m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.5);
-                    
-                } 
-            }
+                    // 3. Calculate Total Pixel Distance (Pythagoras)
+                    let totalDist = Math.sqrt(rDiff * rDiff + arcDiff * arcDiff);
 
-            // 1. Physics Constants
-            const maxSpeed = 1.7;     // The top speed it can reach
-            const accel = 0.09;      // Higher = faster startup (0.01 to 0.1)
-            const friction = 0.98;   // Higher = longer glide (0.9 to 0.98)
+                    if (totalDist > 0.1) {
+                        // --- TWEAK THESE TWO ---
+                        const maxSpeed = Math.min(0.75, sc.battery);  // Constant travel speed in pixels
+                        const easing = 0.1;    // How soon it starts slowing down (0.1 = 10% of distance)
+                        
+                        // 4. Determine Step Size (Constant Speed + Easing)
+                        // This ensures the collector moves at 'maxSpeed' until it's close.
+                        let stepSize = Math.min(maxSpeed, totalDist * easing);
 
-            // Initialize velocity if it doesn't exist yet
-            sc.vr = sc.vr || 0;
-            sc.va = sc.va || 0;
+                        // 5. Calculate the Movement Ratio
+                        let ratio = stepSize / totalDist;
 
-            let desiredVr = 0;
-            let desiredVa = 0;
+                        // 6. Apply Movement proportionally
+                        sc.radius += rDiff * ratio;
+                        sc.radius = Math.min(sc.radius, 450);
+                        sc.angle += angleDiff * ratio;
+                        sc.angle = sc.angle % toRadians(360);
+                    }
 
-            // 2. Targeting Logic (The "Push")
-            if (closestMaterial && closestDistance < 20000) {
-                let rDiff = closestMaterial.radius - sc.radius;
-                let angleDiff = Math.atan2(
-                    Math.sin(closestMaterial.angle - sc.angle), 
-                    Math.cos(closestMaterial.angle - sc.angle)
-                );
-                let arcDiff = angleDiff * sc.radius;
-                let totalDist = Math.hypot(rDiff, arcDiff);
+                    // Angle cleanup
+                    if (sc.angle > Math.PI) sc.angle -= Math.PI * 2;
+                    if (sc.angle < -Math.PI) sc.angle += Math.PI * 2;
 
-                // Only "push" if we haven't arrived yet
-                if (totalDist > 5) { 
-                    // Calculate the direction vector at max speed
-                    desiredVr = (rDiff / totalDist) * maxSpeed;
-                    desiredVa = (arcDiff / totalDist) * maxSpeed;
+                    ctx.save();
+                    ctx.strokeStyle = `rgba(255,255,255, ${Math.min(sc.battery, 0.3)})`;
+                    ctx.beginPath();
+                    ctx.moveTo(polarToCartesian(sc.radius, sc.angle).x, polarToCartesian(sc.radius, sc.angle).y);
+                    ctx.lineTo(polarToCartesian(closestMaterial.radius, closestMaterial.angle).x, polarToCartesian(closestMaterial.radius, closestMaterial.angle).y);
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                    ctx.stroke();
+                    ctx.fillStyle = "rgb(255 255 255)";
+                    ctx.restore();
                 }
             }
 
-            // 3. Apply Steering (Acceleration)
-            // This moves the current velocity toward the desired velocity
-            sc.vr += (desiredVr - sc.vr) * accel;
-            sc.va += (desiredVa - sc.va) * accel;
+            
 
-            // 4. Apply Friction (Damping)
-            // This handles the "gliding to a stop" when desiredVr/Va are 0
-            sc.vr *= friction;
-            sc.va *= friction;
+            // // 1. Physics Constants
+            // const maxSpeed = 1.7;     // The top speed it can reach
+            // const accel = 0.09;      // Higher = faster startup (0.01 to 0.1)
+            // const friction = 0.98;   // Higher = longer glide (0.9 to 0.98)
 
-            // 5. Apply Velocity to Position
-            sc.radius += sc.vr;
-            sc.angle += (sc.va / sc.radius);
+            // // Initialize velocity if it doesn't exist yet
+            // sc.vr = sc.vr || 0;
+            // sc.va = sc.va || 0;
+
+            // let desiredVr = 0;
+            // let desiredVa = 0;
+
+            // // 2. Targeting Logic (The "Push")
+            // if (closestMaterial && closestDistance < 20000) {
+            //     let rDiff = closestMaterial.radius - sc.radius;
+            //     let angleDiff = Math.atan2(
+            //         Math.sin(closestMaterial.angle - sc.angle), 
+            //         Math.cos(closestMaterial.angle - sc.angle)
+            //     );
+            //     let arcDiff = angleDiff * sc.radius;
+            //     let totalDist = Math.hypot(rDiff, arcDiff);
+
+            //     // Only "push" if we haven't arrived yet
+            //     if (totalDist > 5) { 
+            //         // Calculate the direction vector at max speed
+            //         desiredVr = (rDiff / totalDist) * maxSpeed;
+            //         desiredVa = (arcDiff / totalDist) * maxSpeed;
+            //     }
+            // }
+
+            // // 3. Apply Steering (Acceleration)
+            // // This moves the current velocity toward the desired velocity
+            // sc.vr += (desiredVr - sc.vr) * accel;
+            // sc.va += (desiredVa - sc.va) * accel;
+
+            // // 4. Apply Friction (Damping)
+            // // This handles the "gliding to a stop" when desiredVr/Va are 0
+            // sc.vr *= friction;
+            // sc.va *= friction;
+
+            // // 5. Apply Velocity to Position
+            // sc.radius += sc.vr;
+            // sc.angle += (sc.va / sc.radius);
             
             if (drawThisPlanet) canvasDrawSmartCollector(sc);
         }
@@ -1013,8 +1096,14 @@ function canvasDrawMaterials(p) {
     ctx.save();
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     ctx.rotate(p.angle);
-    ctx.fillStyle = `rgba(46, 191, 165, ${p.alpha})`;
-    ctx.fillRect(0, -4, 8, 8);
+    if (p.refined) {
+        ctx.fillStyle = `rgba(46, 134, 192, ${p.alpha})`;
+    } else {
+        ctx.fillStyle = `rgba(46, 191, 165, ${p.alpha})`;
+    }
+    
+    // scale = 1 + p.value/75;
+    ctx.fillRect(-4, -4, 8, 8);
     ctx.restore();
 }
 
@@ -1120,15 +1209,18 @@ function canvasDrawSmartCollector(p) {
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     // ctx.rotate(p.angle);
 
+    p.battery -= 0.005;
     p.battery = Math.max(p.battery, 0);
 
     // Only rotate or move if smart collector has battery
     if (p.battery > 1) {
         p.rotation += p.rotationSpeed;
-    } else if (p.battery > 0) {
+    } else if (p.battery > 0.1) {
         p.rotation += p.rotationSpeed * (p.battery);
+    } else if (p.battery < 0.1) {
+        p.rotation += p.rotationSpeed * 0.1;
     }
-    p.battery -= 0.005;
+    
 
     
     ctx.rotate(p.rotation);
