@@ -35,7 +35,7 @@ changeShipSpeed();
 
 
 let energy = 0;
-let material = 5000;
+let material = 5;
 let crystal = 0;
 
 offset = 0;
