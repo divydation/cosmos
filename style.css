@@ -77,7 +77,6 @@ canvas {
         background: rgba(100,100,100,0.5);
         color: white;
         font-family: "Silkscreen";
-        transition: 0.1s;
         touch-action: none;
         display: flex;
         align-items: center;
@@ -101,6 +100,7 @@ button {
     
     /* Ensures text/buttons aren't accidentally selected while tapping fast */
     user-select: none;
+    transition: 0.15s !important;
 }
 
 
