@@ -423,6 +423,8 @@ function mainThread() {
         for (let i = 0; i < planet.materialsToCollect.length; i++) {
             let p = planet.materialsToCollect[i];
 
+                if (p == null) continue;
+
                 // 1. Get the material's current position
                 const materialPosition = polarToCartesian(p.radius, p.angle);
 
@@ -463,6 +465,39 @@ function mainThread() {
 
                 for (let j = 0; j < planet.collectors.length; j++) {
                     let b = planet.collectors[j];
+
+                    if (b.battery > 0) {
+
+                        bundlerPosition = polarToCartesian(b.radius, b.angle);
+
+                        distance = calculateDistance(materialPosition, bundlerPosition);
+
+                        if (distance <= 15**2) {
+                            planet.materialsToCollect.splice(i, 1);
+                            i--;
+                            // b.mineralsStored += Math.floor(p.value);
+                            material += p.value;
+                        } 
+
+                        if (distance <= collectionRadius**2) {
+                            p.timeInTractorBeam += 0.05;
+
+                            // start moving towards bundler
+                            p.radius += (b.radius + 5 - p.radius) * Math.min(p.timeInTractorBeam, 1);
+
+                            // Magically wraps the difference between -PI and PI
+                            let angleDiff = Math.atan2(Math.sin(b.angle - p.angle), Math.cos(b.angle - p.angle));
+                            
+                            p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
+                            
+                        }
+                    }
+                }
+
+                // Distance to smart collectors
+
+                for (let j = 0; j < planet.smartCollectors.length; j++) {
+                    let b = planet.smartCollectors[j];
 
                     if (b.battery > 0) {
 
@@ -756,24 +791,24 @@ function mainThread() {
                         closestMaterial = m;
                     }
 
-                    if (distance <= 225) {
-                        planet.materialsToCollect.splice(j, 1);
-                        j--;
-                        material += Math.floor(m.value);
-                        sc.battery -= 0.1;
-                    } else if (distance <= collectionRadius**2) {
+                    // if (distance <= 225) {
+                    //     planet.materialsToCollect.splice(j, 1);
+                    //     j--;
+                    //     material += Math.floor(m.value);
+                    //     sc.battery -= 0.1;
+                    // } else if (distance <= collectionRadius**2) {
                         
-                        m.timeInTractorBeam += 0.05;
+                    //     m.timeInTractorBeam += 0.05;
 
-                        // start moving towards smart collector
-                        m.radius += (sc.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
+                    //     // start moving towards smart collector
+                    //     m.radius += (sc.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
 
-                        // Magically wraps the difference between -PI and PI
-                        let angleDiff = Math.atan2(Math.sin(sc.angle - m.angle), Math.cos(sc.angle - m.angle));
+                    //     // Magically wraps the difference between -PI and PI
+                    //     let angleDiff = Math.atan2(Math.sin(sc.angle - m.angle), Math.cos(sc.angle - m.angle));
                         
-                        m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.5);
+                    //     m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.5);
                         
-                    } 
+                    // } 
                 }
 
                 if (closestMaterial) {
