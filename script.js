@@ -2247,7 +2247,7 @@ holdButtons.forEach(button => {
 
         // If the user has held for the full 3 seconds (100%+)
         if (holdPercentage >= 100) {
-            resetBar();
+            
 
             if (button.id == "drill") {
                 deploy();
@@ -2270,11 +2270,13 @@ holdButtons.forEach(button => {
             } else if (button.id == "resetButton") {
                 localStorage.clear();
                 window.location.reload();
+                return;
             } else if (button.id == "travelButton") {
                 clearHelp();
                 travelToSelectedPlanet();
             }
 
+            resetBar();
             return; // Exit the loop so it doesn't keep running
         }
 
