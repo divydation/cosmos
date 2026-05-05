@@ -66,8 +66,9 @@ laserSatelliteCostMaterial = 50;
 refineryCostMaterial = 250;
 smartCollectorCostMaterial = 500;
 
-drillRateUpgradeCost = 100;
-collectionRadiusUpgradeCost = 100;
+drillRateUpgradeCost = 10;
+collectionRadiusUpgradeCost = 10;
+refineChainUpgradeCost = 10;
 
 
 // UPGRADES
@@ -75,6 +76,9 @@ drillProductionRate = 3000;
 drillLevel = 1;
 collectionRadius = 50;
 collectionRadiusLevel = 1;
+refineChainCount = 1;
+refineChainLevel = 1;
+
 
 
 // Timing control
@@ -229,13 +233,13 @@ function mainThread() {
             if (targetRadius < (planet.radius + 15)) targetRadius = (planet.radius + 15);
             if (targetRadius > 450) targetRadius = 450;
 
-            targetRadius = Math.round(targetRadius / 2) * 2;
+            // targetRadius = Math.round(targetRadius / 2) * 2;
 
-            if (Math.abs(targetRadius - flightRadius) < 1) {
-                flightRadius = targetRadius; // Snap it perfectly
-            } else {
+            // if (Math.abs(targetRadius - flightRadius) < 1) {
+            //     flightRadius = targetRadius; // Snap it perfectly
+            // } else {
                 flightRadius += (targetRadius - flightRadius) * 0.05; // Otherwise, keep lerping
-            }
+            // }
 
             changeShipSpeed();
             break;
@@ -430,7 +434,8 @@ function mainThread() {
 
                 distance = calculateDistance(materialPosition, shipPosition);
 
-                p.value *= 1.004;
+                p.value *= 1.005;
+                p.value = Math.min(p.value, 100); // Don't let them be worth more than 100
 
                 if (distance <= 225 && drawThisPlanet) {
                     planet.materialsToCollect.splice(i, 1);
@@ -450,15 +455,15 @@ function mainThread() {
                     
                     p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
                     
-                } else {
-                    p.radius += p.radiusChange;
+                } 
 
-                    if (p.radius > 600 || p.radius < 10) p.alpha -= 0.1;
+                p.radius += p.radiusChange;
 
-                    if (p.alpha < 0) {
-                        planet.materialsToCollect.splice(i, 1);
-                        i--;
-                    }
+                if (p.radius > 600 || p.radius < 10) p.alpha -= 0.1;
+
+                if (p.alpha < 0) {
+                    planet.materialsToCollect.splice(i, 1);
+                    i--;
                 }
 
                 // Distance to collectors
@@ -527,6 +532,29 @@ function mainThread() {
                     }
                 }
 
+                // Distance to refiners
+
+                // for (let j = 0; j < planet.refineries.length; j++) {
+                //     let r = planet.refineries[j];
+
+                //     refineryPosition = polarToCartesian(r.radius, r.angle);
+
+                //     distance = calculateDistance(materialPosition, refineryPosition);
+
+                //     if (distance <= 1000 && !p.refined) {
+                //         p.timeInTractorBeam += 0.05;
+
+                //         // start moving towards refinery
+                //         p.radius += (r.radius - p.radius) * Math.min(p.timeInTractorBeam, 1);
+
+                //         // Magically wraps the difference between -PI and PI
+                //         let angleDiff = Math.atan2(Math.sin(r.angle - p.angle), Math.cos(r.angle - p.angle));
+                        
+                //         p.angle += (angleDiff * Math.min(p.timeInTractorBeam, 1)) + toRadians(0.5);
+                        
+                //     }
+                // }
+
                 if (drawThisPlanet) canvasDrawMaterials(p);
         }
 
@@ -536,9 +564,9 @@ function mainThread() {
             let p = planet.drills[i];
 
 
-
             if (p.radius > planet.radius && !p.arrived) {
                 p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
+                p.radius = Math.max(p.radius, planet.radius);
                 p.angle = p.angle + toRadians(p.tangentVelocity * (300 / p.radius) ** 2);
                 p.angle = p.angle % toRadians(360);
             } else {
@@ -547,13 +575,14 @@ function mainThread() {
                 p.angle = p.angle % toRadians(360);
                 p.productionTimer += dt;
 
-                if (p.productionTimer >= drillProductionRate) { 
+                if (p.productionTimer >= (drillProductionRate + p.randomTimeOffset)) { 
                     p.materialStored += 1; 
                     p.productionTimer = 0; // Reset the timer
 
                     planet.materialsToCollect.push({
-                        radius: p.radius+4,
+                        radius: p.radius+6,
                         angle: p.angle,
+                        rotation: 0,
                         radiusChange: 0.5,
                         angleChange: 0,
                         alpha: 1,
@@ -571,53 +600,71 @@ function mainThread() {
         for (let i = 0; i < planet.refineries.length; i++) {
             let p = planet.refineries[i];
 
-
-
-            if (p.radius > planet.radius && !p.arrived) {
+            if ((p.radius-20) > planet.radius && !p.arrived) {
                 p.radius -= (p.inwardsVelocity * (300 / p.radius) ** 2);
                 p.angle = p.angle + toRadians(p.tangentVelocity * (300 / p.radius) ** 2);
                 p.angle = p.angle % toRadians(360);
-            } else {
-                p.arrived = true;
-                p.angle = p.angle + planet.rotationSpeed;
-                p.angle = p.angle % toRadians(360);
+                if (drawThisPlanet) canvasDrawRefinery(p);
+                continue;
+            } 
 
-                const refineryPosition = polarToCartesian(p.radius, p.angle);
+            p.arrived = true;
+            p.angle = p.angle + planet.rotationSpeed;
+            p.angle = p.angle % toRadians(360);
 
-                // Go through the materials
-                for (let j = 0; j < planet.materialsToCollect.length; j++) {
-                    let m = planet.materialsToCollect[j];
+            p.productionTimer += dt;
 
-                    if (!m.refined) {
-                        materialPosition = polarToCartesian(m.radius, m.angle);
+            refineryPosition = polarToCartesian(p.radius, p.angle);
 
-                        distance = calculateDistance(refineryPosition, materialPosition);
+            timer = 4000;
+            let chainMaterials = [p];
 
-                        if (distance <= 2) {
-                            m.value = 2;
-                            m.radius += 10;
-                            m.refined = true;
-                            m.timeInTractorBeam = 0;
-                            break;
-                        } 
+            if (p.productionTimer >= timer) { 
+
+                    for (t = 0; t < refineChainCount; t++) {
+                        if (chainMaterials[t] == null) break; // Stop chaining
+                        newMaterial = findClosestMaterial(chainMaterials[t], planet.materialsToCollect);
+                        if (newMaterial == null) break;
+                        chainMaterials.push(newMaterial);
+                    }
+
+                    ctx.save();
+                    // ctx.strokeStyle = '#ef6a23';
+                    // ctx.strokeStyle = planet.color;
+                    // ctx.strokeStyle = `rgba(255,255,255, 0.3)`;
+                    ctx.strokeStyle = `rgba(0, 255, 213, ${Math.random()})`;
+                    ctx.beginPath();
+                    ctx.moveTo(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
+
+                    for (d = 0; d < chainMaterials.length; d++) {
+                        h = chainMaterials[d];
                         
-                        if (distance <= 1000) {
-                            
-                            m.timeInTractorBeam += 0.05;
+                        ctx.lineTo(polarToCartesian(h.radius, h.angle).x, polarToCartesian(h.radius, h.angle).y);
+                    }
 
-                            // start moving towards refinery
-                            // m.radius += (p.radius - m.radius) * Math.min(m.timeInTractorBeam, 1);
-                            m.radius = p.radius;
+                    ctx.lineWidth = (p.productionTimer - timer)/400 + (Math.random() * 5 - 2);
+                    ctx.setLineDash([]);
+                    ctx.stroke();
+                    ctx.restore();
 
-                            // Magically wraps the difference between -PI and PI
-                            let angleDiff = Math.atan2(Math.sin(p.angle - m.angle), Math.cos(p.angle - m.angle));
-                            
-                            m.angle += (angleDiff * Math.min(m.timeInTractorBeam, 1)) + toRadians(0.6);
-                            
-                        } 
-                    } 
                 }
+
+                // thirdMaterial = findClosestMaterial(secondMaterial, planet.materialsToCollect);
+            
+
+            if (p.productionTimer >= (timer+1000)) { 
+                for (d = 0; d < chainMaterials.length; d++) {
+                    h = chainMaterials[d]
+                    h.refined = true;
+                    h.value = h.value * 1.5;
+                }
+                p.productionTimer = 0;
             }
+
+            
+
+            
+
 
             if (drawThisPlanet) canvasDrawRefinery(p);
         }
@@ -722,7 +769,7 @@ function mainThread() {
                     ctx.moveTo(laserSatPosition.x, laserSatPosition.y);
                     ctx.lineTo(closestCometPosition.x, closestCometPosition.y);
                     ctx.lineWidth = Math.random() * p.damageStored/2 + Math.random() * 5;
-                    // ctx.setLineDash([5, 5])
+                    ctx.setLineDash([]);
                     // ctx.lineDashOffset = -offset;
                     ctx.stroke();
                     ctx.fillStyle = "rgb(255 255 255)";
@@ -779,7 +826,7 @@ function mainThread() {
 
                     if (m.value < 3) continue;
                     if (m.radius > 450) continue;
-                    
+                
 
                     materialPosition = polarToCartesian(m.radius, m.angle);
                     smartCollectorPosition = polarToCartesian(sc.radius, sc.angle);
@@ -1123,6 +1170,44 @@ function isLaserBlocked(sat, comet) {
 }
 
 
+function findClosestMaterial(object, materialsArray) {
+    let closestMaterial = null;
+    let closestDistance = 10000000000000;
+
+    objectPosition = polarToCartesian(object.radius, object.angle);
+
+    // Find the closest material
+    for (let j = 0; j < materialsArray.length; j++) {
+        let m = materialsArray[j];
+
+        // Skip any materials that are already refined
+        if (m.refined) continue;
+
+        // Skip if it is the same as itself
+        if (m == object) continue;
+
+        // Skip if it is closer to planet than itself
+        if (m.radius < object.radius) continue;
+
+        
+        materialPosition = polarToCartesian(m.radius, m.angle);
+
+        distance = calculateDistance(objectPosition, materialPosition);
+
+        // Skip any materials that are too far away
+        if (distance > 10000) continue;
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestMaterial = m;
+        }
+    }
+
+    // Return the closest material which is in range and not already refined
+    return closestMaterial;
+}
+
+
 
 
 
@@ -1130,12 +1215,15 @@ function isLaserBlocked(sat, comet) {
 function canvasDrawMaterials(p) {
     ctx.save();
     ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
-    ctx.rotate(p.angle);
+    
     if (p.refined) {
-        ctx.fillStyle = `rgba(46, 134, 192, ${p.alpha})`;
+        ctx.fillStyle = `rgba(8, 247, 208, ${p.alpha})`;
+        p.rotation += 0.1;
     } else {
         ctx.fillStyle = `rgba(46, 191, 165, ${p.alpha})`;
     }
+    ctx.rotate(p.angle);
+    ctx.rotate(p.rotation);
     
     // scale = 1 + p.value/75;
     ctx.fillRect(-4, -4, 8, 8);
@@ -1153,10 +1241,11 @@ function canvasDrawDrills(p) {
 
 function canvasDrawRefinery(p) {
     ctx.save();
-    ctx.translate(500,500);
+    // ctx.translate(500,500);
+    ctx.translate(polarToCartesian(p.radius, p.angle).x, polarToCartesian(p.radius, p.angle).y);
     ctx.rotate(p.angle);
     ctx.fillStyle = "rgb(255 255 255)";
-    ctx.fillRect(p.radius, -5, 20, 10);
+    ctx.fillRect(-20, -5, 25, 10);
     ctx.restore();
 }
 
@@ -1446,10 +1535,9 @@ function drawSolarSystem() {
         // 4. DRAWING
         ctx.save();
         ctx.beginPath();
-        // ctx.lineWidth = 2; // Optional: ensure the line is visible
-        // ctx.strokeStyle = "rgba(0, 255, 255, 0.6)"; // Optional: cyan glow
 
-        const segments = 120; 
+
+        const segments = 20; 
         for (let i = 0; i <= segments; i++) {
             let t = i / segments;
             
@@ -1541,6 +1629,7 @@ function deploy() {
         arrived: false,
         materialStored: 0,
         productionTimer: 0,
+        randomTimeOffset: Math.random() * 1000 - 500,
     });
 }
 
@@ -1629,9 +1718,8 @@ function deployLaserSatellite() {
 
 
 function upgradeDrillRate() {
-    // Material
-    if (energy < drillRateUpgradeCost) return;
-    energy -= drillRateUpgradeCost;
+    if (crystal < drillRateUpgradeCost) return;
+    crystal -= drillRateUpgradeCost;
     drillRateUpgradeCost = Math.floor(drillRateUpgradeCost * 2);
 
     drillProductionRate = drillProductionRate / 1.25;
@@ -1639,13 +1727,21 @@ function upgradeDrillRate() {
 }
 
 function upgradeCollectionLevel() {
-    // Material
-    if (energy < collectionRadiusUpgradeCost) return;
-    energy -= collectionRadiusUpgradeCost;
+    if (crystal < collectionRadiusUpgradeCost) return;
+    crystal -= collectionRadiusUpgradeCost;
     collectionRadiusUpgradeCost = Math.floor(collectionRadiusUpgradeCost * 2);
 
     collectionRadius = collectionRadius * 1.1;
     collectionRadiusLevel++;
+}
+
+function upgradeRefineChainLevel() {
+    if (crystal < refineChainUpgradeCost) return;
+    crystal -= refineChainUpgradeCost;
+    refineChainUpgradeCost = Math.floor(refineChainUpgradeCost * 2);
+
+    refineChainCount += 1;
+    refineChainLevel++;
 }
 
 // Ship speed calculations
@@ -1995,6 +2091,9 @@ const menuButtons = document.querySelectorAll('.menuButton');
 
 menuButtons.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
+
+    if (!acceptingInput) return;
+    acceptingInput = false;
     
     extractedId = button.id.toString().slice(0, -6) + "Menu";
     oldActiveMenuID = activeMenu;
@@ -2004,6 +2103,7 @@ menuButtons.forEach(button => {
 
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
+        acceptingInput = true;
     }, 200);
 
     
@@ -2022,7 +2122,7 @@ function menuFade() {
 
     setTimeout(() => {
         buttons.forEach(currentbutton => {
-            currentbutton.style.opacity = "1";
+        currentbutton.style.opacity = "1";
         });
     }, 250);
 }
@@ -2031,6 +2131,9 @@ const returnButtons = document.querySelectorAll('.returnButton');
 
 returnButtons.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
+
+    if (!acceptingInput) return;
+    acceptingInput = false;
     
     oldActiveMenuID = activeMenu;
     activeMenu = "mainMenu";
@@ -2039,16 +2142,19 @@ returnButtons.forEach(button => {
     
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
+        acceptingInput = true;
     }, 200);
     
   });
 });
 
-
+acceptingInput = true;
 const deviceMenuTwoButton = document.querySelectorAll('.deviceMenuTwoButton');
 
 deviceMenuTwoButton.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
+    if (!acceptingInput) return;
+    acceptingInput = false;
     
     oldActiveMenuID = activeMenu;
     activeMenu = "deviceMenuTwo";
@@ -2057,6 +2163,7 @@ deviceMenuTwoButton.forEach(button => {
     
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
+        acceptingInput = true;
     }, 200);
     
   });
@@ -2066,6 +2173,9 @@ const deviceMenuOneButton = document.querySelectorAll('.deviceMenuOneButton');
 
 deviceMenuOneButton.forEach(button => {
   button.addEventListener('pointerdown', (event) => {
+
+    if (!acceptingInput) return;
+    acceptingInput = false;
     
     oldActiveMenuID = activeMenu;
     activeMenu = "deviceMenu";
@@ -2074,6 +2184,7 @@ deviceMenuOneButton.forEach(button => {
     
     setTimeout(() => {
         switchMenu(oldActiveMenuID, activeMenu);
+        acceptingInput = true;
     }, 200);
     
   });
@@ -2099,6 +2210,8 @@ holdButtons.forEach(button => {
         button.style.scale = "1";
         button.style.boxShadow = "";
         button.style.textShadow = "";
+        svg = button.querySelector("svg");
+        if (svg) svg.style.filter = "";
         // button.innerHTML = defaultText;
         
         // updating = true;
@@ -2113,6 +2226,9 @@ holdButtons.forEach(button => {
         document.getElementById("drillLevel").innerHTML = "LVL " + drillLevel.toString();
         document.getElementById("collectionRadiusUpgradeCost").innerHTML = collectionRadiusUpgradeCost;
         document.getElementById("collectionRadiusLevel").innerHTML = "LVL " + collectionRadiusLevel.toString();
+
+        document.getElementById("refineChainUpgradeCost").innerHTML = refineChainUpgradeCost;
+        document.getElementById("refineChainLevel").innerHTML = "LVL " + refineChainLevel.toString();
     };
 
     // The animation loop that runs every frame while held
@@ -2149,6 +2265,8 @@ holdButtons.forEach(button => {
                 upgradeDrillRate();
             } else if (button.id == "collectionRadiusUpgrade") {
                 upgradeCollectionLevel();
+            } else if (button.id == "refineChainUpgrade") {
+                upgradeRefineChainLevel();
             } else if (button.id == "resetButton") {
                 localStorage.clear();
                 window.location.reload();
@@ -2166,6 +2284,9 @@ holdButtons.forEach(button => {
         // button.target.style.backgroundColor = "#EF233C";
         button.style.boxShadow = "0 0 6vw 0.1vw #3083DC";
         button.style.textShadow = "0 0 3vw #fff";
+
+        svg = button.querySelector("svg");
+        if (svg) svg.style.filter = "drop-shadow(0 0 2.5vw #fff)";
 
 
         // Apply the gradient visually using template literals for cleaner syntax
@@ -2283,6 +2404,9 @@ function saveGame() {
         drillLevel,
         collectionRadius,
         collectionRadiusLevel,
+        refineChainCount,
+        refineChainLevel,
+        refineChainUpgradeCost,
 
         // Arrays
         // drills,
@@ -2328,15 +2452,10 @@ function loadGame() {
     drillLevel = state.drillLevel;
     collectionRadius = state.collectionRadius;
     collectionRadiusLevel = state.collectionRadiusLevel;
+    refineChainCount = state.refineChainCount;
+    refineChainLevel = state.refineChainLevel;
+    refineChainUpgradeCost = state.refineChainUpgradeCost;
 
-    // drills = state.drills;
-    // satellites = state.satellites;
-    // collectors = state.collectors;
-    // laserSatellites = state.laserSatellites;
-    // planets = state.planets;
-    // materialsToCollect = state.materialsToCollect;
-    // bundles = state.bundles;
-    // crystals = state.crystals
     planets = state.planets;
 
     // console.log("Game Loaded!");
