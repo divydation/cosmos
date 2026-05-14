@@ -19,7 +19,11 @@
             --error-bg: #FEE2E2;
             --error-text: #991B1B;
             --error-border: #FECACA;
-            --math-op: #0ea5e9; /* Light blue for operations matching your image */
+            --math-op: #0ea5e9;
+            
+            /* Drag and Drop specific vars */
+            --card-bg: #e2e8f0;
+            --zone-bg: #f8fafc;
         }
 
         * {
@@ -41,7 +45,7 @@
 
         header {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -89,7 +93,7 @@
 
         main {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             background: var(--surface);
             border-radius: 16px;
             padding: 2rem;
@@ -101,7 +105,7 @@
             align-items: center;
         }
 
-        /* History Container Styling */
+        /* Multiple Choice Styles */
         .history-container {
             width: 100%;
             display: flex;
@@ -133,15 +137,14 @@
         .op-row {
             display: flex;
             justify-content: center;
-            gap: 4rem; /* Spaces the blue operations out to look like "both sides" */
+            gap: 4rem;
             color: var(--math-op);
             font-size: 1.6rem;
             font-weight: 600;
             margin: 0.2rem 0;
-            font-family: "Courier New", Courier, monospace; /* Monospace gives a clean math look */
+            font-family: "Courier New", Courier, monospace;
         }
 
-        /* Beautiful math fractions */
         .frac {
             display: inline-flex;
             flex-direction: column;
@@ -218,7 +221,143 @@
             color: var(--success-text) !important;
         }
 
-        .next-btn {
+        /* Drag and Drop Styles */
+        #dd-mode-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .dd-workspace {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: var(--bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: 100%;
+        }
+
+        .dd-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .dd-row i {
+            font-family: "Times New Roman", Times, serif;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        .dd-side {
+            min-width: 120px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dd-equals {
+            width: 30px;
+            text-align: center;
+        }
+
+        .dd-full-width {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .drop-zone {
+            min-width: 120px;
+            min-height: 50px;
+            padding: 5px;
+            border: 2px dashed #94a3b8;
+            border-radius: 8px;
+            background-color: var(--zone-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .drop-zone.state-zone {
+            min-width: 250px; 
+        }
+
+        .drop-zone.drag-over {
+            background-color: #e0f2fe;
+            border-color: #0ea5e9;
+        }
+
+        .card-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 80px;
+            padding: 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background-color: #f8fafc;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            width: 100%;
+        }
+
+        .card {
+            padding: 10px 15px;
+            background-color: var(--card-bg);
+            border: 1px solid #94a3b8;
+            border-radius: 6px;
+            cursor: grab;
+            user-select: none;
+            font-weight: 600;
+            font-size: 1.2rem;
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card i {
+            font-family: "Times New Roman", Times, serif;
+            font-style: italic;
+            font-weight: normal;
+        }
+        
+        .card * {
+            pointer-events: none;
+        }
+
+        .card:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .card.correct {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border-color: var(--success-text);
+        }
+
+        .card.incorrect {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border-color: var(--error-text);
+        }
+
+        .btn-check-dd {
             background-color: var(--primary);
             color: white;
             border: none;
@@ -228,11 +367,10 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
-            display: none;
             margin: 0 auto;
         }
 
-        .next-btn:hover {
+        .btn-check-dd:hover {
             background-color: var(--primary-hover);
         }
 
@@ -243,12 +381,21 @@
             margin-bottom: 1.5rem;
             display: none;
         }
+
+        /* Hide elements dynamically */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
 
     <header>
         <div class="controls">
+            <select id="interaction-mode">
+                <option value="mc">Multiple Choice Mode</option>
+                <option value="dd" selected>Drag & Drop Mode</option>
+            </select>
             <select id="difficulty">
                 <option value="1">1-Step Equations</option>
                 <option value="2">2-Step Equations</option>
@@ -256,73 +403,84 @@
                 <option value="4">Variables on Both Sides</option>
             </select>
             <select id="answer-mode">
-                <option value="math" selected>Math Answers</option>
-                <option value="worded">Worded Answers</option>
+                <option value="math" selected>Math Format</option>
+                <option value="worded">Worded Format</option>
             </select>
         </div>
         <div class="score-board">
-            Questions Completed: <span id="score">0</span>
+            Score: <span id="score">0</span>
         </div>
     </header>
 
     <main>
-        <div id="history-container" class="history-container">
+        <div id="celebration" class="celebration">Solved! Great job. Loading next...</div>
+
+        <div id="mc-mode-container" class="hidden">
+            <div id="history-container" class="history-container"></div>
+            <div id="prompt-container">
+                <div class="prompt-text">What should happen to both sides?</div>
+                <div id="options-grid" class="options-grid"></div>
             </div>
-        
-        <div id="celebration" class="celebration">Solved! Great job.</div>
-        
-        <div id="prompt-container">
-            <div class="prompt-text">What should happen to both sides?</div>
-            <div id="options-grid" class="options-grid">
-                </div>
         </div>
 
-        <button id="next-btn" class="next-btn">Next Question</button>
+        <div id="dd-mode-container">
+            <div class="dd-workspace" id="dd-workspace">
+                </div>
+            
+            <div class="prompt-text">Drag operations and results into the correct boxes to solve.</div>
+            
+            <div class="card-bank" id="card-bank">
+                </div>
+            
+            <button id="dd-check-btn" class="btn-check-dd">Check Work</button>
+        </div>
     </main>
 
     <script>
+        // DOM Elements
+        const mcModeContainer = document.getElementById('mc-mode-container');
+        const ddModeContainer = document.getElementById('dd-mode-container');
         const historyContainer = document.getElementById('history-container');
         const optionsGrid = document.getElementById('options-grid');
         const promptContainer = document.getElementById('prompt-container');
-        const nextBtn = document.getElementById('next-btn');
+        const ddWorkspace = document.getElementById('dd-workspace');
+        const cardBank = document.getElementById('card-bank');
+        const ddCheckBtn = document.getElementById('dd-check-btn');
+        
+        const interactionModeSelect = document.getElementById('interaction-mode');
         const difficultySelect = document.getElementById('difficulty');
         const answerModeSelect = document.getElementById('answer-mode');
         const scoreDisplay = document.getElementById('score');
         const celebrationText = document.getElementById('celebration');
 
+        // State Variables
         let currentQuestionSteps = [];
         let currentStepIndex = 0;
-        // let score = 0;
-
-        // Load saved score from localStorage
-        let score = parseInt(localStorage.getItem('questionsCompleted')) || 0;
+        let firstAttemptFailed = false; 
+        let score = parseInt(localStorage.getItem('equationsScore')) || 0;
         scoreDisplay.textContent = score;
+        
+        let draggedCard = null;
 
+        // Utility Math Functions
         const randInt = (min, max, exclude = []) => {
             let num;
-            do {
-                num = Math.floor(Math.random() * (max - min + 1)) + min;
-            } while (exclude.includes(num));
+            do { num = Math.floor(Math.random() * (max - min + 1)) + min; } while (exclude.includes(num));
             return num;
         };
 
         const fFrac = (num, den) => `<span class="frac"><span class="num">${num}</span><span class="den">${den}</span></span>`;
 
-        // Translates worded actions into purely mathematical notation
         const getMathFormat = (wordedAction) => {
             let match = wordedAction.match(/^Add (.*) to both sides$/);
             if (match) return `+ ${match[1]}`;
-            
             match = wordedAction.match(/^Subtract (.*) from both sides$/);
-            if (match) return `− ${match[1]}`; // Using proper minus sign
-            
+            if (match) return `− ${match[1]}`;
             match = wordedAction.match(/^Multiply both sides by (.*)$/);
             if (match) return `× ${match[1]}`;
-            
             match = wordedAction.match(/^Divide both sides by (.*)$/);
             if (match) return `÷ ${match[1]}`;
-            
-            return wordedAction; // Fallback
+            return wordedAction;
         };
 
         const generateDistractors = (correctAction, val, isXTerm = false) => {
@@ -338,9 +496,7 @@
             };
 
             ops.forEach(op => {
-                if (op !== currentOp) {
-                    distractors.push(buildText(op, isXTerm ? `${val}x` : val));
-                }
+                if (op !== currentOp) distractors.push(buildText(op, isXTerm ? `${val}x` : val));
             });
 
             if (isXTerm) {
@@ -352,9 +508,17 @@
             return distractors.sort(() => 0.5 - Math.random()).slice(0, 3);
         };
 
+        // FIXED BUG: Now explicitly splits by " = " (with spaces) so it doesn't accidentally
+        // split HTML attributes like class="frac"
+        const splitEquation = (eqHTML) => {
+            let parts = eqHTML.split(' = ');
+            if (parts.length < 2) return [eqHTML, ''];
+            return [parts[0].trim(), parts[1].trim()];
+        };
+
+        // Equation Generator
         const generateQuestion = (stepsSetting) => {
             let steps = [];
-            
             if (stepsSetting === 1) {
                 let type = randInt(1, 3);
                 if (type === 1) {
@@ -378,21 +542,17 @@
                     let action = `Divide both sides by ${a}`;
                     steps.push({ equation: eq, correct: action, options: [action, ...generateDistractors(action, a)].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${ans}`});
                 }
-            } 
-            else if (stepsSetting === 2) {
+            } else if (stepsSetting === 2) {
                 if (Math.random() > 0.5) {
                     let a = randInt(2, 7);
                     let ans = randInt(-9, 9);
                     let c = randInt(-6, 6, [0]);
                     let b = a * c - ans;
                     if (b === 0) b = 2; 
-                    
                     let eq1 = `${fFrac(`<i>x</i> ${b > 0 ? '+' : '−'} ${Math.abs(b)}`, a)} = ${c}`;
                     let action1 = `Multiply both sides by ${a}`;
-                    
                     let eq2 = `<i>x</i> ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${a * c}`;
                     let action2 = b > 0 ? `Subtract ${Math.abs(b)} from both sides` : `Add ${Math.abs(b)} to both sides`;
-                    
                     steps.push({ equation: eq1, correct: action1, options: [action1, ...generateDistractors(action1, a)].sort(() => 0.5 - Math.random()), nextEq: eq2 });
                     steps.push({ equation: eq2, correct: action2, options: [action2, ...generateDistractors(action2, Math.abs(b))].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${a * c - b}` });
                 } else {
@@ -400,65 +560,47 @@
                     let ans = randInt(-9, 9);
                     let b = randInt(-15, 15, [0]);
                     let c = (a * ans) + b;
-
                     let eq1 = `${a}<i>x</i> ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${c}`;
                     let action1 = b > 0 ? `Subtract ${b} from both sides` : `Add ${Math.abs(b)} to both sides`;
-                    
                     let eq2 = `${a}<i>x</i> = ${c - b}`;
                     let action2 = `Divide both sides by ${a}`;
-
                     steps.push({ equation: eq1, correct: action1, options: [action1, ...generateDistractors(action1, Math.abs(b))].sort(() => 0.5 - Math.random()), nextEq: eq2 });
                     steps.push({ equation: eq2, correct: action2, options: [action2, ...generateDistractors(action2, a)].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${ans}` });
                 }
-            } 
-            else if (stepsSetting === 3) {
+            } else if (stepsSetting === 3) {
                 let a = randInt(2, 7);
                 let c = randInt(2, 7);
                 let ans = randInt(-8, 8);
                 let d = randInt(-8, 8, [0]);
                 let b = c * d - a * ans;
-                
-                while (b === 0) {
-                    d = randInt(-8, 8, [0]);
-                    b = c * d - a * ans;
-                }
-
+                while (b === 0) { d = randInt(-8, 8, [0]); b = c * d - a * ans; }
                 let eq1 = `${fFrac(`${a}<i>x</i> ${b > 0 ? '+' : '−'} ${Math.abs(b)}`, c)} = ${d}`;
                 let action1 = `Multiply both sides by ${c}`;
-                
                 let eq2 = `${a}<i>x</i> ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${c * d}`;
                 let action2 = b > 0 ? `Subtract ${Math.abs(b)} from both sides` : `Add ${Math.abs(b)} to both sides`;
-                
                 let eq3 = `${a}<i>x</i> = ${c * d - b}`;
                 let action3 = `Divide both sides by ${a}`;
-
                 steps.push({ equation: eq1, correct: action1, options: [action1, ...generateDistractors(action1, c)].sort(() => 0.5 - Math.random()), nextEq: eq2 });
                 steps.push({ equation: eq2, correct: action2, options: [action2, ...generateDistractors(action2, Math.abs(b))].sort(() => 0.5 - Math.random()), nextEq: eq3 });
                 steps.push({ equation: eq3, correct: action3, options: [action3, ...generateDistractors(action3, a)].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${ans}` });
-            } 
-            else {
+            } else {
                 let c = randInt(-3, 5, [0, 1]);
                 let a = c + randInt(2, 5); 
                 let ans = randInt(-7, 7);
                 let b = randInt(-10, 10, [0]);
                 let d = ((a - c) * ans) + b;
-
                 let formatTerm = (coef, isFirst) => {
                     if (coef === 1) return isFirst ? '<i>x</i>' : '+ <i>x</i>';
                     if (coef === -1) return isFirst ? '-<i>x</i>' : '− <i>x</i>';
                     if (coef > 0) return isFirst ? `${coef}<i>x</i>` : `+ ${coef}<i>x</i>`;
                     return isFirst ? `${coef}<i>x</i>` : `− ${Math.abs(coef)}<i>x</i>`;
                 };
-
                 let eq1 = `${formatTerm(a, true)} ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${formatTerm(c, true)} ${d > 0 ? '+' : '−'} ${Math.abs(d)}`;
                 let action1 = c > 0 ? `Subtract ${c}x from both sides` : `Add ${Math.abs(c)}x to both sides`;
-                
                 let eq2 = `${formatTerm(a - c, true)} ${b > 0 ? '+' : '−'} ${Math.abs(b)} = ${d}`;
                 let action2 = b > 0 ? `Subtract ${Math.abs(b)} from both sides` : `Add ${Math.abs(b)} to both sides`;
-                
                 let eq3 = `${formatTerm(a - c, true)} = ${d - b}`;
                 let action3 = `Divide both sides by ${a - c}`;
-
                 steps.push({ equation: eq1, correct: action1, options: [action1, ...generateDistractors(action1, Math.abs(c), true)].sort(() => 0.5 - Math.random()), nextEq: eq2 });
                 steps.push({ equation: eq2, correct: action2, options: [action2, ...generateDistractors(action2, Math.abs(b))].sort(() => 0.5 - Math.random()), nextEq: eq3 });
                 steps.push({ equation: eq3, correct: action3, options: [action3, ...generateDistractors(action3, a - c)].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${ans}` });
@@ -466,7 +608,61 @@
             return steps;
         };
 
-        const renderOptions = () => {
+        // --- Core Application Logic ---
+
+        const handleSuccess = () => {
+            if (!firstAttemptFailed) {
+                score++;
+                scoreDisplay.textContent = score;
+                localStorage.setItem('equationsScore', score);
+            }
+            
+            celebrationText.style.display = 'block';
+            
+            if (interactionModeSelect.value === 'mc') {
+                promptContainer.style.display = 'none';
+            } else {
+                ddCheckBtn.style.display = 'none';
+            }
+            
+            // Loop forever!
+            setTimeout(startNewQuestion, 2000);
+        };
+
+        const startNewQuestion = () => {
+            const difficulty = parseInt(difficultySelect.value);
+            currentQuestionSteps = generateQuestion(difficulty);
+            currentStepIndex = 0;
+            firstAttemptFailed = false;
+            
+            celebrationText.style.display = 'none';
+
+            if (interactionModeSelect.value === 'mc') {
+                mcModeContainer.classList.remove('hidden');
+                ddModeContainer.classList.add('hidden');
+                initMultipleChoice();
+            } else {
+                mcModeContainer.classList.add('hidden');
+                ddModeContainer.classList.remove('hidden');
+                initDragDrop();
+            }
+        };
+
+        // --- Multiple Choice Mode Logic ---
+        
+        const initMultipleChoice = () => {
+            historyContainer.innerHTML = '';
+            promptContainer.style.display = 'block';
+            
+            const div = document.createElement('div');
+            div.className = 'eq-row';
+            div.innerHTML = currentQuestionSteps[0].equation;
+            historyContainer.appendChild(div);
+            
+            renderMCOptions();
+        };
+
+        const renderMCOptions = () => {
             optionsGrid.innerHTML = '';
             if (currentStepIndex >= currentQuestionSteps.length) return;
 
@@ -476,92 +672,189 @@
             stepData.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
+                btn.innerHTML = mode === 'math' ? getMathFormat(opt) : opt;
                 
-                // Show either worded string or math string based on dropdown
-                const displayText = mode === 'math' ? getMathFormat(opt) : opt;
-                btn.textContent = displayText;
-                
-                btn.onclick = () => handleOptionClick(btn, opt, stepData.correct);
+                btn.onclick = () => {
+                    if (opt === stepData.correct) {
+                        btn.classList.add('correct');
+                        Array.from(optionsGrid.children).forEach(b => b.disabled = true);
+
+                        setTimeout(() => {
+                            const mathAction = getMathFormat(stepData.correct);
+                            
+                            // Render operation row
+                            const opRow = document.createElement('div');
+                            opRow.className = 'op-row';
+                            opRow.innerHTML = `<span>${mathAction}</span><span>${mathAction}</span>`;
+                            historyContainer.appendChild(opRow);
+                            
+                            // Render next state
+                            const eqRow = document.createElement('div');
+                            eqRow.className = 'eq-row';
+                            eqRow.innerHTML = stepData.nextEq;
+                            historyContainer.appendChild(eqRow);
+
+                            currentStepIndex++;
+                            
+                            if (currentStepIndex < currentQuestionSteps.length) {
+                                renderMCOptions();
+                            } else {
+                                handleSuccess();
+                            }
+                        }, 600); 
+                    } else {
+                        btn.classList.add('wrong');
+                        btn.disabled = true; 
+                        firstAttemptFailed = true; // Score penalty for this turn
+                    }
+                };
                 optionsGrid.appendChild(btn);
             });
         };
 
-        const addEquationToHistory = (eqHTML) => {
-            const div = document.createElement('div');
-            div.className = 'eq-row';
-            div.innerHTML = eqHTML;
-            historyContainer.appendChild(div);
+        // --- Drag and Drop Logic ---
+
+        const initDragDrop = () => {
+            ddWorkspace.innerHTML = '';
+            cardBank.innerHTML = '';
+            ddCheckBtn.style.display = 'block';
+            
+            let cardsData = [];
+            const mode = answerModeSelect.value;
+
+            // Render Initial Equation
+            let initialParts = splitEquation(currentQuestionSteps[0].equation);
+            ddWorkspace.innerHTML += `
+                <div class="dd-row">
+                    <div class="dd-side">${initialParts[0]}</div>
+                    <div class="dd-equals">=</div>
+                    <div class="dd-side">${initialParts[1]}</div>
+                </div>
+            `;
+
+            currentQuestionSteps.forEach((step) => {
+                let opText = mode === 'math' ? getMathFormat(step.correct) : step.correct;
+                let encodedOp = encodeURIComponent(opText);
+                let encodedNextEq = encodeURIComponent(step.nextEq);
+                
+                // Add Operation Drop Zones
+                ddWorkspace.innerHTML += `
+                    <div class="dd-row" style="color: var(--math-op);">
+                        <div class="dd-side"><div class="drop-zone" data-expected="${encodedOp}"></div></div>
+                        <div class="dd-equals"></div>
+                        <div class="dd-side"><div class="drop-zone" data-expected="${encodedOp}"></div></div>
+                    </div>
+                `;
+                
+                // Add Next Equation Drop Zone
+                ddWorkspace.innerHTML += `
+                    <div class="dd-row">
+                        <div class="dd-full-width">
+                            <div class="drop-zone state-zone" data-expected="${encodedNextEq}"></div>
+                        </div>
+                    </div>
+                `;
+
+                // Collect correct cards
+                cardsData.push(opText, opText); 
+                cardsData.push(step.nextEq);
+
+                // Collect Distractors
+                let distractor = step.options.find(o => o !== step.correct) || step.options[0];
+                let distractorText = mode === 'math' ? getMathFormat(distractor) : distractor;
+                cardsData.push(distractorText, distractorText);
+            });
+
+            // Add a random final equation distractor
+            cardsData.push("<i>x</i> = " + randInt(-10, 10));
+
+            // Shuffle and render cards
+            cardsData.sort(() => 0.5 - Math.random()).forEach(valHTML => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.draggable = true;
+                card.setAttribute('data-val', encodeURIComponent(valHTML));
+                card.innerHTML = valHTML;
+                cardBank.appendChild(card);
+            });
+
+            attachDragDropEvents();
         };
 
-        const addOperationToHistory = (actionStr) => {
-            const mathAction = getMathFormat(actionStr);
-            const div = document.createElement('div');
-            div.className = 'op-row';
-            div.innerHTML = `<span>${mathAction}</span><span>${mathAction}</span>`;
-            historyContainer.appendChild(div);
-        };
+        const attachDragDropEvents = () => {
+            const cards = document.querySelectorAll('.card');
+            const dropZones = document.querySelectorAll('.drop-zone');
 
-        const handleOptionClick = (btn, selectedStr, correctStr) => {
-            if (selectedStr === correctStr) {
-                btn.classList.add('correct');
-                Array.from(optionsGrid.children).forEach(b => b.disabled = true);
+            cards.forEach(card => {
+                card.addEventListener('dragstart', () => {
+                    draggedCard = card;
+                    card.classList.remove('correct', 'incorrect');
+                    setTimeout(() => card.style.opacity = '0.5', 0);
+                });
+                card.addEventListener('dragend', () => {
+                    setTimeout(() => {
+                        if(draggedCard) draggedCard.style.opacity = '1';
+                        draggedCard = null;
+                    }, 0);
+                });
+            });
 
-                setTimeout(() => {
-                    const stepData = currentQuestionSteps[currentStepIndex];
-                    
-                    // Add the blue operation history
-                    addOperationToHistory(stepData.correct);
-                    // Add the resulting equation
-                    addEquationToHistory(stepData.nextEq);
-
-                    currentStepIndex++;
-                    
-                    if (currentStepIndex < currentQuestionSteps.length) {
-                        renderOptions();
-                    } else {
-                        // Finished
-                        promptContainer.style.display = 'none';
-                        celebrationText.style.display = 'block';
-                        nextBtn.style.display = 'block';
-                        score++;
-                        scoreDisplay.textContent = score;
-                        // Save to localStorage
-                        localStorage.setItem('questionsCompleted', score); 
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('drag-over');
+                });
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    if (zone.children.length === 0 && draggedCard) {
+                        zone.appendChild(draggedCard);
                     }
-                }, 600); 
-            } else {
-                btn.classList.add('wrong');
-                btn.disabled = true; 
-            }
+                });
+            });
+
+            cardBank.addEventListener('dragover', (e) => e.preventDefault());
+            cardBank.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (draggedCard) cardBank.appendChild(draggedCard);
+            });
         };
 
-        const startNewQuestion = () => {
-            const difficulty = parseInt(difficultySelect.value);
-            currentQuestionSteps = generateQuestion(difficulty);
-            currentStepIndex = 0;
-            
-            // Reset UI
-            historyContainer.innerHTML = '';
-            celebrationText.style.display = 'none';
-            nextBtn.style.display = 'none';
-            promptContainer.style.display = 'block';
-            
-            // Add initial equation
-            addEquationToHistory(currentQuestionSteps[0].equation);
-            renderOptions();
-        };
+        ddCheckBtn.addEventListener('click', () => {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            let allCorrect = true;
 
-        // Event Listeners
-        nextBtn.addEventListener('click', startNewQuestion);
-        difficultySelect.addEventListener('change', startNewQuestion);
-        
-        // Re-render buttons instantly if mode is changed mid-question
-        answerModeSelect.addEventListener('change', () => {
-            if (currentStepIndex < currentQuestionSteps.length) {
-                renderOptions();
+            dropZones.forEach(zone => {
+                if (zone.children.length > 0) {
+                    const card = zone.children[0];
+                    if (zone.getAttribute('data-expected') === card.getAttribute('data-val')) {
+                        card.classList.add('correct');
+                        card.classList.remove('incorrect');
+                    } else {
+                        card.classList.add('incorrect');
+                        card.classList.remove('correct');
+                        allCorrect = false;
+                        firstAttemptFailed = true; // Score penalty
+                    }
+                } else {
+                    allCorrect = false; // Missing cards
+                }
+            });
+
+            if (allCorrect) {
+                handleSuccess();
             }
         });
 
+        // Events
+        interactionModeSelect.addEventListener('change', startNewQuestion);
+        difficultySelect.addEventListener('change', startNewQuestion);
+        answerModeSelect.addEventListener('change', startNewQuestion);
+
+        // Init
         startNewQuestion();
     </script>
 </body>
