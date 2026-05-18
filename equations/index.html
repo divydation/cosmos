@@ -8,22 +8,24 @@
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
-            --bg: #F9FAFB;
+            --bg: #F8FAFC;
             --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border: #E5E7EB;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #CBD5E1;
             --success-bg: #DCFCE7;
             --success-text: #166534;
             --success-border: #BBF7D0;
             --error-bg: #FEE2E2;
             --error-text: #991B1B;
             --error-border: #FECACA;
-            --math-op: #0ea5e9;
+            --math-op: #0284C7;
             
-            /* Drag and Drop specific vars */
-            --card-bg: #e2e8f0;
-            --zone-bg: #f8fafc;
+            /* Step specific vars */
+            --eq-bg: #FFFFFF;
+            --eq-border: #CBD5E1;
+            --op-bg: #F0F9FF;
+            --op-border: #7DD3FC;
         }
 
         * {
@@ -45,7 +47,7 @@
 
         header {
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -55,7 +57,7 @@
             padding: 1rem 1.5rem;
             background: var(--surface);
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
             border: 1px solid var(--border);
         }
 
@@ -63,6 +65,7 @@
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .controls select {
@@ -74,10 +77,44 @@
             cursor: pointer;
             outline: none;
             color: var(--text-main);
+            font-weight: 500;
         }
 
         .controls select:focus {
             border-color: var(--primary);
+        }
+
+        .custom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .custom-controls button {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+
+        .custom-controls button:hover {
+            background: #E2E8F0;
+        }
+
+        .custom-controls span {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
         }
 
         .score-board {
@@ -93,16 +130,42 @@
 
         main {
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
             background: var(--surface);
             border-radius: 16px;
             padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
             border: 1px solid var(--border);
-            text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
+        }
+
+        /* Distinct Backgrounds for Steps */
+        .eq-row-container {
+            background-color: var(--eq-bg);
+            border: 2px solid var(--eq-border);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin: 0.5rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            color: var(--text-main);
+            overflow-x: auto;
+        }
+
+        .op-row-container {
+            background-color: var(--op-bg);
+            border: 2px dashed var(--op-border);
+            border-radius: 12px;
+            padding: 0.75rem 2rem;
+            margin: 0.5rem 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            color: var(--math-op);
         }
 
         /* Multiple Choice Styles */
@@ -115,16 +178,13 @@
         }
 
         .eq-row {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 450;
             letter-spacing: 0.05em;
-            color: var(--text-main);
-            min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin: 0.5rem 0;
         }
 
         .eq-row i {
@@ -138,10 +198,8 @@
             display: flex;
             justify-content: center;
             gap: 4rem;
-            color: var(--math-op);
             font-size: 1.6rem;
             font-weight: 600;
-            margin: 0.2rem 0;
             font-family: "Courier New", Courier, monospace;
         }
 
@@ -154,7 +212,7 @@
         }
 
         .frac .num {
-            border-bottom: 3px solid var(--text-main);
+            border-bottom: 3px solid currentColor;
             padding: 0 0.5rem 0.2rem 0.5rem;
             line-height: 1;
         }
@@ -169,6 +227,7 @@
             color: var(--text-muted);
             margin-bottom: 1rem;
             font-weight: 500;
+            text-align: center;
         }
 
         .options-grid {
@@ -221,24 +280,51 @@
             color: var(--success-text) !important;
         }
 
-        /* Drag and Drop Styles */
+        /* Drag and Drop Layout Styles */
         #dd-mode-container {
             width: 100%;
             display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+
+        .dd-sidebar {
+            flex: 0 0 320px;
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background-color: var(--bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .dd-main-area {
+            flex: 1;
+            display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            #dd-mode-container {
+                flex-direction: column;
+            }
+            .dd-sidebar {
+                position: static;
+                flex: auto;
+                width: 100%;
+            }
         }
 
         .dd-workspace {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background-color: var(--bg);
-            border-radius: 8px;
-            border: 1px solid var(--border);
             width: 100%;
         }
 
@@ -263,6 +349,7 @@
             text-align: center;
             display: flex;
             justify-content: center;
+            align-items: center;
         }
 
         .dd-equals {
@@ -278,56 +365,68 @@
 
         .drop-zone {
             min-width: 120px;
-            min-height: 50px;
+            min-height: 55px;
             padding: 5px;
             border: 2px dashed #94a3b8;
             border-radius: 8px;
-            background-color: var(--zone-bg);
+            background-color: var(--surface);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s, border-color 0.2s;
+            transition: all 0.2s;
         }
 
         .drop-zone.state-zone {
             min-width: 250px; 
+            min-height: 70px;
         }
 
         .drop-zone.drag-over {
-            background-color: #e0f2fe;
-            border-color: #0ea5e9;
+            background-color: #E0F2FE;
+            border-color: #0284C7;
+            transform: scale(1.02);
         }
 
         .card-bank {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
-            min-height: 80px;
-            padding: 1.5rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            background-color: #f8fafc;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 1.5rem;
+            align-content: start;
             width: 100%;
+            min-height: 200px;
         }
 
         .card {
-            padding: 10px 15px;
-            background-color: var(--card-bg);
-            border: 1px solid #94a3b8;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 8px;
             cursor: grab;
             user-select: none;
             font-weight: 600;
-            font-size: 1.2rem;
-            transition: transform 0.1s, background-color 0.2s;
+            font-size: 1.1rem;
+            transition: transform 0.1s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 60px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Differentiate Operation cards from State cards */
+        .card.op-card {
+            background-color: var(--op-bg);
+            border: 1px solid var(--op-border);
+            color: var(--math-op);
+        }
+
+        .card.state-card {
+            background-color: var(--eq-bg);
+            border: 1px solid var(--eq-border);
+            color: var(--text-main);
         }
 
         .card i {
@@ -346,15 +445,15 @@
         }
 
         .card.correct {
-            background-color: var(--success-bg);
-            color: var(--success-text);
-            border-color: var(--success-text);
+            background-color: var(--success-bg) !important;
+            color: var(--success-text) !important;
+            border-color: var(--success-border) !important;
         }
 
         .card.incorrect {
-            background-color: var(--error-bg);
-            color: var(--error-text);
-            border-color: var(--error-text);
+            background-color: var(--error-bg) !important;
+            color: var(--error-text) !important;
+            border-color: var(--error-border) !important;
         }
 
         .btn-check-dd {
@@ -367,7 +466,8 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
-            margin: 0 auto;
+            width: 100%;
+            margin-top: 1rem;
         }
 
         .btn-check-dd:hover {
@@ -380,9 +480,9 @@
             font-weight: bold;
             margin-bottom: 1.5rem;
             display: none;
+            text-align: center;
         }
 
-        /* Hide elements dynamically */
         .hidden {
             display: none !important;
         }
@@ -397,11 +497,19 @@
                 <option value="dd" selected>Drag & Drop Mode</option>
             </select>
             <select id="difficulty">
-                <option value="1">1-Step Equations</option>
-                <option value="2">2-Step Equations</option>
-                <option value="3" selected>3-Step Equations</option>
+                <option value="1">One Step</option>
+                <option value="2">Two Step</option>
+                <option value="3">Three Step</option>
+                <option value="custom" selected>Custom Step</option>
                 <option value="4">Variables on Both Sides</option>
             </select>
+            
+            <div id="custom-step-controls" class="custom-controls">
+                <button id="btn-dec-step">-</button>
+                <span id="custom-step-display">4</span>
+                <button id="btn-inc-step">+</button>
+            </div>
+
             <select id="answer-mode">
                 <option value="math" selected>Math Format</option>
                 <option value="worded">Worded Format</option>
@@ -415,24 +523,24 @@
     <main>
         <div id="celebration" class="celebration">Solved! Great job. Loading next...</div>
 
-        <div id="mc-mode-container" class="hidden">
+        <div id="mc-mode-container" class="hidden" style="width: 100%;">
             <div id="history-container" class="history-container"></div>
-            <div id="prompt-container">
+            <div id="prompt-container" style="width: 100%;">
                 <div class="prompt-text">What should happen to both sides?</div>
                 <div id="options-grid" class="options-grid"></div>
             </div>
         </div>
 
         <div id="dd-mode-container">
-            <div class="dd-workspace" id="dd-workspace">
-                </div>
+            <div class="dd-sidebar">
+                <div class="prompt-text">Drag operations and results into the correct boxes. <br><br><em>(Click a placed card to return it to the dock)</em></div>
+                <div class="card-bank" id="card-bank"></div>
+                <button id="dd-check-btn" class="btn-check-dd">Check Work</button>
+            </div>
             
-            <div class="prompt-text">Drag operations and results into the correct boxes to solve.</div>
-            
-            <div class="card-bank" id="card-bank">
-                </div>
-            
-            <button id="dd-check-btn" class="btn-check-dd">Check Work</button>
+            <div class="dd-main-area">
+                <div class="dd-workspace" id="dd-workspace"></div>
+            </div>
         </div>
     </main>
 
@@ -452,15 +560,44 @@
         const answerModeSelect = document.getElementById('answer-mode');
         const scoreDisplay = document.getElementById('score');
         const celebrationText = document.getElementById('celebration');
+        
+        const customStepControls = document.getElementById('custom-step-controls');
+        const customStepDisplay = document.getElementById('custom-step-display');
 
         // State Variables
         let currentQuestionSteps = [];
         let currentStepIndex = 0;
         let firstAttemptFailed = false; 
         let score = parseInt(localStorage.getItem('equationsScore')) || 0;
-        scoreDisplay.textContent = score;
-        
+        let customStepsCount = 4;
         let draggedCard = null;
+        
+        scoreDisplay.textContent = score;
+
+        // Custom Step Buttons
+        document.getElementById('btn-dec-step').addEventListener('click', () => {
+            if(customStepsCount > 1) {
+                customStepsCount--;
+                customStepDisplay.textContent = customStepsCount;
+                startNewQuestion();
+            }
+        });
+        document.getElementById('btn-inc-step').addEventListener('click', () => {
+            if(customStepsCount < 100) {
+                customStepsCount++;
+                customStepDisplay.textContent = customStepsCount;
+                startNewQuestion();
+            }
+        });
+
+        difficultySelect.addEventListener('change', () => {
+            if(difficultySelect.value === 'custom') {
+                customStepControls.classList.remove('hidden');
+            } else {
+                customStepControls.classList.add('hidden');
+            }
+            startNewQuestion();
+        });
 
         // Utility Math Functions
         const randInt = (min, max, exclude = []) => {
@@ -499,17 +636,12 @@
                 if (op !== currentOp) distractors.push(buildText(op, isXTerm ? `${val}x` : val));
             });
 
-            if (isXTerm) {
-                distractors.push(buildText(currentOp, val));
-            } else {
-                distractors.push(buildText(currentOp, `${val}x`));
-            }
+            if (isXTerm) distractors.push(buildText(currentOp, val));
+            else distractors.push(buildText(currentOp, `${val}x`));
 
             return distractors.sort(() => 0.5 - Math.random()).slice(0, 3);
         };
 
-        // FIXED BUG: Now explicitly splits by " = " (with spaces) so it doesn't accidentally
-        // split HTML attributes like class="frac"
         const splitEquation = (eqHTML) => {
             let parts = eqHTML.split(' = ');
             if (parts.length < 2) return [eqHTML, ''];
@@ -519,6 +651,114 @@
         // Equation Generator
         const generateQuestion = (stepsSetting) => {
             let steps = [];
+            
+            // --- Custom N-Step Generator (Inside-Out Builder) ---
+            if (stepsSetting === 'custom') {
+                // Generate sequence of operations to build the "mess" outwards from x
+                let buildOps = [];
+                for(let i = 0; i < customStepsCount; i++) {
+                    let type = randInt(0, 3);
+                    let v = randInt(2, 6);
+                    if (type === 0 || type === 1) v = randInt(1, 15);
+                    buildOps.push({ type, v });
+                }
+
+                // Find a starting 'ans' that evaluates entirely cleanly (integers)
+                let validAns = null;
+                let possibleAns = [];
+                for (let i = -15; i <= 15; i++) possibleAns.push(i);
+                possibleAns.sort(() => 0.5 - Math.random());
+
+                for (let ans of possibleAns) {
+                    let currentR = ans;
+                    let isValid = true;
+                    for (let op of buildOps) {
+                        if (op.type === 0) currentR += op.v; // +
+                        else if (op.type === 1) currentR -= op.v; // -
+                        else if (op.type === 2) currentR *= op.v; // *
+                        else if (op.type === 3) { // /
+                            if (currentR % op.v !== 0) { isValid = false; break; }
+                            currentR /= op.v;
+                        }
+                    }
+                    if (isValid) { validAns = ans; break; }
+                }
+
+                // Fallback if no nice integer path exists (rare, but mathematically possible)
+                if (validAns === null) {
+                    validAns = randInt(-10, 10);
+                    let currentR = validAns;
+                    for (let op of buildOps) {
+                        if (op.type === 3 && currentR % op.v !== 0) op.type = 2; // Flip divides to multiplies to guarantee ints
+                        
+                        if (op.type === 0) currentR += op.v;
+                        else if (op.type === 1) currentR -= op.v;
+                        else if (op.type === 2) currentR *= op.v;
+                        else if (op.type === 3) currentR /= op.v;
+                    }
+                }
+
+                // Builder helper to generate HTML math string
+                const getLStr = (limit) => {
+                    if (limit < 0) return "<i>x</i>";
+                    let str = "<i>x</i>";
+                    for (let i = 0; i <= limit; i++) {
+                        let op = buildOps[i];
+                        if (op.type === 0) str = `${str} + ${op.v}`;
+                        else if (op.type === 1) str = `${str} − ${op.v}`;
+                        else if (op.type === 2) {
+                            if (str.includes('+') || str.includes('−')) str = `${op.v}(${str})`;
+                            else str = `${op.v}${str}`;
+                        }
+                        else if (op.type === 3) str = fFrac(str, op.v);
+                    }
+                    return str;
+                };
+
+                // Builder helper to evaluate value side
+                const getRVal = (limit, ans) => {
+                    if (limit < 0) return ans;
+                    let currentR = ans;
+                    for (let i = 0; i <= limit; i++) {
+                        let op = buildOps[i];
+                        if (op.type === 0) currentR += op.v;
+                        else if (op.type === 1) currentR -= op.v;
+                        else if (op.type === 2) currentR *= op.v;
+                        else if (op.type === 3) currentR /= op.v;
+                    }
+                    return currentR;
+                };
+
+                // Formulate the actual solving steps backwards (peeling the layers)
+                for (let k = buildOps.length - 1; k >= 0; k--) {
+                    let eqL = getLStr(k);
+                    let eqR = getRVal(k, validAns);
+                    let nextL = getLStr(k - 1);
+                    let nextR = getRVal(k - 1, validAns);
+
+                    let eq = `${eqL} = ${eqR}`;
+                    let nextEq = `${nextL} = ${nextR}`;
+                    let op = buildOps[k];
+                    
+                    let forwardOp = "";
+                    if (op.type === 0) forwardOp = `Subtract ${op.v} from both sides`; // peeled an add
+                    else if (op.type === 1) forwardOp = `Add ${op.v} to both sides`; // peeled a sub
+                    else if (op.type === 2) forwardOp = `Divide both sides by ${op.v}`; // peeled a mult
+                    else if (op.type === 3) forwardOp = `Multiply both sides by ${op.v}`; // peeled a div
+
+                    steps.push({
+                        equation: eq,
+                        correct: forwardOp,
+                        options: [forwardOp, ...generateDistractors(forwardOp, op.v)].sort(() => 0.5 - Math.random()),
+                        nextEq: nextEq
+                    });
+                }
+                return steps;
+            }
+
+            // --- Pre-defined Hand-crafted Steps ---
+            stepsSetting = parseInt(stepsSetting);
+            
             if (stepsSetting === 1) {
                 let type = randInt(1, 3);
                 if (type === 1) {
@@ -583,7 +823,7 @@
                 steps.push({ equation: eq1, correct: action1, options: [action1, ...generateDistractors(action1, c)].sort(() => 0.5 - Math.random()), nextEq: eq2 });
                 steps.push({ equation: eq2, correct: action2, options: [action2, ...generateDistractors(action2, Math.abs(b))].sort(() => 0.5 - Math.random()), nextEq: eq3 });
                 steps.push({ equation: eq3, correct: action3, options: [action3, ...generateDistractors(action3, a)].sort(() => 0.5 - Math.random()), nextEq: `<i>x</i> = ${ans}` });
-            } else {
+            } else if (stepsSetting === 4) {
                 let c = randInt(-3, 5, [0, 1]);
                 let a = c + randInt(2, 5); 
                 let ans = randInt(-7, 7);
@@ -625,12 +865,11 @@
                 ddCheckBtn.style.display = 'none';
             }
             
-            // Loop forever!
             setTimeout(startNewQuestion, 2000);
         };
 
         const startNewQuestion = () => {
-            const difficulty = parseInt(difficultySelect.value);
+            const difficulty = difficultySelect.value;
             currentQuestionSteps = generateQuestion(difficulty);
             currentStepIndex = 0;
             firstAttemptFailed = false;
@@ -655,7 +894,7 @@
             promptContainer.style.display = 'block';
             
             const div = document.createElement('div');
-            div.className = 'eq-row';
+            div.className = 'eq-row-container eq-row';
             div.innerHTML = currentQuestionSteps[0].equation;
             historyContainer.appendChild(div);
             
@@ -682,15 +921,13 @@
                         setTimeout(() => {
                             const mathAction = getMathFormat(stepData.correct);
                             
-                            // Render operation row
                             const opRow = document.createElement('div');
-                            opRow.className = 'op-row';
+                            opRow.className = 'op-row-container op-row';
                             opRow.innerHTML = `<span>${mathAction}</span><span>${mathAction}</span>`;
                             historyContainer.appendChild(opRow);
                             
-                            // Render next state
                             const eqRow = document.createElement('div');
-                            eqRow.className = 'eq-row';
+                            eqRow.className = 'eq-row-container eq-row';
                             eqRow.innerHTML = stepData.nextEq;
                             historyContainer.appendChild(eqRow);
 
@@ -705,7 +942,7 @@
                     } else {
                         btn.classList.add('wrong');
                         btn.disabled = true; 
-                        firstAttemptFailed = true; // Score penalty for this turn
+                        firstAttemptFailed = true; 
                     }
                 };
                 optionsGrid.appendChild(btn);
@@ -725,10 +962,12 @@
             // Render Initial Equation
             let initialParts = splitEquation(currentQuestionSteps[0].equation);
             ddWorkspace.innerHTML += `
-                <div class="dd-row">
-                    <div class="dd-side">${initialParts[0]}</div>
-                    <div class="dd-equals">=</div>
-                    <div class="dd-side">${initialParts[1]}</div>
+                <div class="eq-row-container">
+                    <div class="dd-row">
+                        <div class="dd-side">${initialParts[0]}</div>
+                        <div class="dd-equals">=</div>
+                        <div class="dd-side">${initialParts[1]}</div>
+                    </div>
                 </div>
             `;
 
@@ -739,42 +978,47 @@
                 
                 // Add Operation Drop Zones
                 ddWorkspace.innerHTML += `
-                    <div class="dd-row" style="color: var(--math-op);">
-                        <div class="dd-side"><div class="drop-zone" data-expected="${encodedOp}"></div></div>
-                        <div class="dd-equals"></div>
-                        <div class="dd-side"><div class="drop-zone" data-expected="${encodedOp}"></div></div>
+                    <div class="op-row-container">
+                        <div class="dd-row">
+                            <div class="dd-side"><div class="drop-zone op-zone" data-expected="${encodedOp}"></div></div>
+                            <div class="dd-equals"></div>
+                            <div class="dd-side"><div class="drop-zone op-zone" data-expected="${encodedOp}"></div></div>
+                        </div>
                     </div>
                 `;
                 
                 // Add Next Equation Drop Zone
                 ddWorkspace.innerHTML += `
-                    <div class="dd-row">
-                        <div class="dd-full-width">
-                            <div class="drop-zone state-zone" data-expected="${encodedNextEq}"></div>
+                    <div class="eq-row-container">
+                        <div class="dd-row">
+                            <div class="dd-full-width">
+                                <div class="drop-zone state-zone" data-expected="${encodedNextEq}"></div>
+                            </div>
                         </div>
                     </div>
                 `;
 
                 // Collect correct cards
-                cardsData.push(opText, opText); 
-                cardsData.push(step.nextEq);
+                cardsData.push({ valHTML: opText, type: 'op' });
+                cardsData.push({ valHTML: opText, type: 'op' }); 
+                cardsData.push({ valHTML: step.nextEq, type: 'state' });
 
                 // Collect Distractors
                 let distractor = step.options.find(o => o !== step.correct) || step.options[0];
                 let distractorText = mode === 'math' ? getMathFormat(distractor) : distractor;
-                cardsData.push(distractorText, distractorText);
+                cardsData.push({ valHTML: distractorText, type: 'op' });
+                cardsData.push({ valHTML: distractorText, type: 'op' });
             });
 
-            // Add a random final equation distractor
-            cardsData.push("<i>x</i> = " + randInt(-10, 10));
+            cardsData.push({ valHTML: "<i>x</i> = " + randInt(-10, 10), type: 'state' }); // random distractor
 
             // Shuffle and render cards
-            cardsData.sort(() => 0.5 - Math.random()).forEach(valHTML => {
+            cardsData.sort(() => 0.5 - Math.random()).forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = `card ${item.type}-card`;
                 card.draggable = true;
-                card.setAttribute('data-val', encodeURIComponent(valHTML));
-                card.innerHTML = valHTML;
+                card.setAttribute('data-val', encodeURIComponent(item.valHTML));
+                card.innerHTML = item.valHTML;
                 cardBank.appendChild(card);
             });
 
@@ -786,17 +1030,35 @@
             const dropZones = document.querySelectorAll('.drop-zone');
 
             cards.forEach(card => {
+                // Return to bank on click if inside a zone
+                card.addEventListener('click', () => {
+                    if (card.parentElement.classList.contains('drop-zone')) {
+                        cardBank.appendChild(card);
+                        card.classList.remove('correct', 'incorrect');
+                    }
+                });
+
                 card.addEventListener('dragstart', () => {
                     draggedCard = card;
                     card.classList.remove('correct', 'incorrect');
                     setTimeout(() => card.style.opacity = '0.5', 0);
                 });
+                
                 card.addEventListener('dragend', () => {
                     setTimeout(() => {
                         if(draggedCard) draggedCard.style.opacity = '1';
                         draggedCard = null;
                     }, 0);
                 });
+            });
+
+            // If dragged outside a valid drop zone, return to dock
+            document.body.addEventListener('dragover', (e) => e.preventDefault());
+            document.body.addEventListener('drop', (e) => {
+                if (draggedCard && !e.target.closest('.drop-zone')) {
+                    cardBank.appendChild(draggedCard);
+                    draggedCard.classList.remove('correct', 'incorrect');
+                }
             });
 
             dropZones.forEach(zone => {
@@ -809,17 +1071,18 @@
                 });
                 zone.addEventListener('drop', (e) => {
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent document.body drop
                     zone.classList.remove('drag-over');
                     if (zone.children.length === 0 && draggedCard) {
                         zone.appendChild(draggedCard);
+                    } else if (zone.children.length > 0 && draggedCard) {
+                        // Swap back to bank if zone occupied
+                        const oldCard = zone.children[0];
+                        cardBank.appendChild(oldCard);
+                        oldCard.classList.remove('correct', 'incorrect');
+                        zone.appendChild(draggedCard);
                     }
                 });
-            });
-
-            cardBank.addEventListener('dragover', (e) => e.preventDefault());
-            cardBank.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (draggedCard) cardBank.appendChild(draggedCard);
             });
         };
 
@@ -837,10 +1100,10 @@
                         card.classList.add('incorrect');
                         card.classList.remove('correct');
                         allCorrect = false;
-                        firstAttemptFailed = true; // Score penalty
+                        firstAttemptFailed = true; 
                     }
                 } else {
-                    allCorrect = false; // Missing cards
+                    allCorrect = false; 
                 }
             });
 
@@ -851,7 +1114,6 @@
 
         // Events
         interactionModeSelect.addEventListener('change', startNewQuestion);
-        difficultySelect.addEventListener('change', startNewQuestion);
         answerModeSelect.addEventListener('change', startNewQuestion);
 
         // Init
