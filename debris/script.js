@@ -168,7 +168,7 @@ let currentPlanet = planets[0];
 
 
 const bgMusic = new Howl({
-  src: ['background.gg'],
+  src: ['background.ogg'],
   sprite: {
     // [Start Time, Duration, Loop]
     // Example: Starts at 0ms, plays for 29900ms, loops back to 0
