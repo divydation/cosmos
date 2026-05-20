@@ -202,14 +202,14 @@ unlockEvents.forEach(event => {
 // 1. Load your single note
 const sweepNote = new Howl({
   src: ['effect.mp3'],
-  volume: 0.3 // Keep volume lower since notes will overlap rapidly
+  volume: 0.2 // Keep volume lower since notes will overlap rapidly
 });
 
 // 2. Define your orbital boundaries and rate limits
 const MIN_RADIUS = 100; // Closest orbit
 const MAX_RADIUS = 450; // Furthest orbit
-const MAX_RATE = 3.0;   // High pitch/fast (closest to planet)
-const MIN_RATE = 0.5;   // Low pitch/slow (furthest from planet)
+const MAX_RATE = 2.0;   // High pitch/fast (closest to planet)
+const MIN_RATE = 0.25;   // Low pitch/slow (furthest from planet)
 
 // 3. Helper function: Map radius to rate (Linear Interpolation)
 function getRateFromRadius(currentRadius) {
@@ -225,7 +225,7 @@ function getRateFromRadius(currentRadius) {
 
 // 4. Game loop execution variables
 let lastNoteTime = 0;
-const NOTE_INTERVAL = 200; // Trigger a note every 80ms while moving
+const NOTE_INTERVAL = 100; // Trigger a note every 80ms while moving
 
 // Call this inside your main update/movement function when the radius changes
 function playRiserSweep(currentRadius) {
