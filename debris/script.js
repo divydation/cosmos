@@ -178,7 +178,11 @@ const bgMusic = new Howl({
   preload: true
 });
 
-bgMusic.play();
+document.addEventListener('click', function() {
+  bgMusic.play();
+}, { once: true });
+
+
 
 
 
